@@ -1,3 +1,4 @@
+// 字符串字节转化
 package common
 
 import (
