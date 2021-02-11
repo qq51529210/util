@@ -7,7 +7,7 @@ import (
 
 func TestLienReader(t *testing.T) {
 	var data bytes.Buffer
-	reader := NewLineReader(&data, 32)
+	reader := NewLineReader(&data, make([]byte, 16))
 	var line []byte
 	// 读取空行
 	data.WriteByte('\n')

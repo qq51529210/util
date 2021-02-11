@@ -15,13 +15,13 @@ type LineReader struct {
 	reader io.Reader // 数据源
 }
 
-// 创建一个LineReader，数据源是r，r.Read()使用的数据缓存大小是n。
-func NewLineReader(r io.Reader, n int) *LineReader {
+// 创建一个LineReader，数据源是r，r.Read()使用的缓存是b。
+func NewLineReader(r io.Reader, b []byte) *LineReader {
 	p := new(LineReader)
-	if n <= 0 {
-		n = 128
+	p.buff = b
+	if len(p.buff) <= 0 {
+		p.buff = make([]byte, 128)
 	}
-	p.buff = make([]byte, n)
 	p.reader = r
 	return p
 }
@@ -96,6 +96,7 @@ func (r *LineReader) readData() []byte {
 				r.pIdx = 0
 				r.dLen = 0
 			}
+			r.dIdx = r.pIdx
 			return p
 		}
 		r.pIdx = r.dLen
