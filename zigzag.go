@@ -1,5 +1,5 @@
 // 整数的压缩算法
-package common
+package util
 
 func ZigZag32(n int32) int32 {
 	return (n >> 1) ^ (n << 31)

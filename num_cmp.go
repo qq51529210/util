@@ -1,5 +1,5 @@
-// 数值比较
-package common
+// 因为没有泛型，整数的比较
+package util
 
 import "time"
 

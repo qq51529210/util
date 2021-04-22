@@ -1,5 +1,5 @@
 // 字符串字节转化
-package common
+package util
 
 import (
 	"errors"
