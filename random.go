@@ -1,49 +1,68 @@
-// 生成随机字符串
 package util
 
 import (
 	"math/rand"
-	"strings"
 	"time"
 )
 
 var (
-	randBytes []byte                                        // 随机字符
-	random    = rand.New(rand.NewSource(time.Now().Unix())) // 随机数
+	_random random
 )
 
 func init() {
+	// 种子
+	_random.r = rand.New(rand.NewSource(time.Now().Unix()))
+	// 数字
 	for i := '0'; i <= '9'; i++ {
-		randBytes = append(randBytes, byte(i))
+		_random.b[0] = append(_random.b[0], byte(i))
+		_random.b[3] = append(_random.b[3], byte(i))
 	}
+	// 小写字母
 	for i := 'a'; i <= 'z'; i++ {
-		randBytes = append(randBytes, byte(i))
+		_random.b[1] = append(_random.b[1], byte(i))
+		_random.b[3] = append(_random.b[3], byte(i))
 	}
+	// 大写字母
 	for i := 'A'; i <= 'Z'; i++ {
-		randBytes = append(randBytes, byte(i))
+		_random.b[2] = append(_random.b[2], byte(i))
+		_random.b[3] = append(_random.b[3], byte(i))
 	}
 }
 
-// 设置RandomString产生的字符，不是同步的
-func SetRandomBytes(b []byte) {
-	randBytes = make([]byte, len(b))
-	copy(randBytes, b)
+type random struct {
+	// 0:数字
+	// 1:小写字母
+	// 2:大写字母
+	// 3:混合
+	b [4][]byte
+	// 随机数
+	r *rand.Rand
 }
 
-// 返回随机字符串"a-z 0-9 A-Z"，n:长度
-func RandomString(n int) string {
-	var str strings.Builder
+func (r *random) rand(n, i int) string {
+	b := make([]byte, n)
 	for i := 0; i < n; i++ {
-		str.WriteByte(randBytes[random.Intn(len(randBytes))])
+		b[i] = _random.b[i][_random.r.Intn(len(_random.b[i]))]
 	}
-	return str.String()
+	return string(b)
 }
 
-// 随机数字字符串"0-9"，n:长度
+// RandomNumber 返回 n 长度的随机数字
 func RandomNumber(n int) string {
-	var str strings.Builder
-	for i := 0; i < n; i++ {
-		str.WriteByte(randBytes[random.Intn(10)])
-	}
-	return str.String()
+	return _random.rand(n, 0)
+}
+
+// RandomLower 返回 n 长度的随机小写字母
+func RandomLower(n int) string {
+	return _random.rand(n, 1)
+}
+
+// RandomUpper 返回 n 长度的随机大写字母
+func RandomUpper(n int) string {
+	return _random.rand(n, 2)
+}
+
+// RandomString 返回 n 长度的随机字母混合数字
+func RandomString(n int) string {
+	return _random.rand(n, 3)
 }

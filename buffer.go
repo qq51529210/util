@@ -100,7 +100,7 @@ func (b *encodeBuffer) Put64(n uint64) {
 // Append n random bytes.
 func (b *encodeBuffer) PutRandom(n int) {
 	b.grow(n)
-	random.Read(b.buf[b.len:])
+	_random.r.Read(b.buf[b.len:])
 	b.len += n
 }
 

@@ -1,3 +1,3 @@
-module github.com/qq51529210/common
+module github.com/qq51529210/util
 
-go 1.15
+go 1.19
