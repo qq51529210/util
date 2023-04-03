@@ -166,3 +166,14 @@ func (r *HTTPReadSeeker) seekHTTP(offset int64) error {
 	//
 	return nil
 }
+
+// NewHTTPReadSeeker 返回新的 HTTPReadSeeker ，开始会请求一次
+func NewHTTPReadSeeker(url string) (*HTTPReadSeeker, error) {
+	r := new(HTTPReadSeeker)
+	r.url = url
+	err := r.seekHTTP(0)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
