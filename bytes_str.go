@@ -1,4 +1,3 @@
-// 字符串字节转化
 package util
 
 import (
@@ -8,25 +7,20 @@ import (
 )
 
 const (
-	KBits = 1024
-	MBits = 1024 * KBits
-	GBits = 1024 * MBits
-	TBits = 1024 * GBits
-
-	KBytes = 1024
-	MBytes = 1024 * KBytes
-	GBytes = 1024 * MBytes
-	TBytes = 1024 * GBytes
+	bytesK = 1024
+	bytesM = 1024 * bytesK
+	bytesG = 1024 * bytesM
+	bytesT = 1024 * bytesG
 )
 
 var (
-	ErrEmptyArgument = errors.New("empty argument")
+	errEmptyArgument = errors.New("empty argument")
 )
 
-// 解析2KB，3.13M，4.5G，5.67Tb，字符串到数值
+// StringToByte 解析 2KB，3.13M，4.5G，5.67Tb 这样的字符串到数值
 func StringToByte(s string) (uint64, error) {
 	if s == "" {
-		return 0, ErrEmptyArgument
+		return 0, errEmptyArgument
 	}
 	i := len(s) - 1
 	if s[i] == 'B' || s[i] == 'b' {
@@ -41,25 +35,25 @@ func StringToByte(s string) (uint64, error) {
 		if nil != e {
 			return 0, e
 		}
-		return uint64(v * KBytes), nil
+		return uint64(v * bytesK), nil
 	case 'M', 'm':
 		v, e := strconv.ParseFloat(s[:i], 64)
 		if nil != e {
 			return 0, e
 		}
-		return uint64(v * MBytes), nil
+		return uint64(v * bytesM), nil
 	case 'G', 'g':
 		v, e := strconv.ParseFloat(s[:i], 64)
 		if nil != e {
 			return 0, e
 		}
-		return uint64(v * GBytes), nil
+		return uint64(v * bytesG), nil
 	case 'T', 't':
 		v, e := strconv.ParseFloat(s[:i], 64)
 		if nil != e {
 			return 0, e
 		}
-		return uint64(v * TBytes), nil
+		return uint64(v * bytesT), nil
 	default:
 		v, e := strconv.ParseFloat(s[:i], 64)
 		if nil != e {
@@ -69,19 +63,19 @@ func StringToByte(s string) (uint64, error) {
 	}
 }
 
-// 数值1234567，这样的到字符串1.177...MB，保留p位小数
+// ByteToString 格式化数值1234567，这样的到字符串1.177...MB，保留 p 位小数
 func ByteToString(n uint64, p int) string {
-	if n > TBytes {
-		return strconv.FormatFloat(float64(n)/TBytes, 'f', p, 64) + "TB"
+	if n > bytesT {
+		return strconv.FormatFloat(float64(n)/bytesT, 'f', p, 64) + "T"
 	}
-	if n > GBytes {
-		return strconv.FormatFloat(float64(n)/GBytes, 'f', p, 64) + "GB"
+	if n > bytesG {
+		return strconv.FormatFloat(float64(n)/bytesG, 'f', p, 64) + "G"
 	}
-	if n > MBytes {
-		return strconv.FormatFloat(float64(n)/MBytes, 'f', p, 64) + "MB"
+	if n > bytesM {
+		return strconv.FormatFloat(float64(n)/bytesM, 'f', p, 64) + "M"
 	}
-	if n > KBytes {
-		return strconv.FormatFloat(float64(n)/KBytes, 'f', p, 64) + "KB"
+	if n > bytesK {
+		return strconv.FormatFloat(float64(n)/bytesK, 'f', p, 64) + "K"
 	}
-	return strconv.FormatUint(n, 10) + "B"
+	return strconv.FormatUint(n, 10)
 }

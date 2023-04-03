@@ -1,4 +1,3 @@
-// 哈希缓存持
 package util
 
 import (
@@ -31,18 +30,34 @@ func init() {
 	}
 }
 
-// 对字符串s作md5的运算，然后返回16进制的字符串值
-func MD5(s string) string {
+// MD5 返回 16 进制哈希字符串
+func MD5(b []byte) string {
 	h := md5Pool.Get().(*hashBuffer)
-	s = h.Hash(s)
+	s := h.Hash(b)
 	md5Pool.Put(h)
 	return s
 }
 
-// 对字符串s作sha1的运算，然后返回16进制的字符串值
-func SHA1(s string) string {
+// SHA1 返回 16 进制哈希字符串
+func SHA1(b []byte) string {
 	h := sha1Pool.Get().(*hashBuffer)
-	s = h.Hash(s)
+	s := h.Hash(b)
+	sha1Pool.Put(h)
+	return s
+}
+
+// MD5String 返回 16 进制哈希字符串
+func MD5String(s string) string {
+	h := md5Pool.Get().(*hashBuffer)
+	s = h.HashString(s)
+	md5Pool.Put(h)
+	return s
+}
+
+// SHA1String 返回 16 进制哈希字符串
+func SHA1String(s string) string {
+	h := sha1Pool.Get().(*hashBuffer)
+	s = h.HashString(s)
 	sha1Pool.Put(h)
 	return s
 }
@@ -54,8 +69,16 @@ type hashBuffer struct {
 	sum  []byte
 }
 
-// hash并转成15进制
-func (h *hashBuffer) Hash(s string) string {
+func (h *hashBuffer) Hash(b []byte) string {
+	h.hash.Reset()
+	h.hash.Write(b)
+	h.hash.Sum(h.sum[:0])
+	h.buf = h.buf[:h.hash.Size()*2]
+	hex.Encode(h.buf, h.sum)
+	return string(h.buf)
+}
+
+func (h *hashBuffer) HashString(s string) string {
 	h.buf = h.buf[:0]
 	h.buf = append(h.buf, s...)
 	h.hash.Reset()
