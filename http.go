@@ -15,7 +15,7 @@ import (
 type HTTPStatusError int
 
 func (e HTTPStatusError) Error() string {
-	return fmt.Sprintf("http error status code %d", e)
+	return fmt.Sprintf("error status code %d", e)
 }
 
 // HTTP 封装 http 操作
