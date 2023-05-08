@@ -45,6 +45,11 @@ func (bw *BitWriter) Raw() []byte {
 	return bw.b
 }
 
+// Raw 返回当前的缓存
+func (bw *BitWriter) IsCompleted() bool {
+	return bw.n == 0
+}
+
 // Write8 写入
 func (bw *BitWriter) Write8(v uint8, n int) {
 	// 判断
@@ -57,5 +62,24 @@ func (bw *BitWriter) Write8(v uint8, n int) {
 		bw.b = append(bw.b, bw.c)
 		bw.n -= 8
 		bw.c = v << (8 - bw.n)
+	} else if bw.n == 8 {
+		bw.b = append(bw.b, bw.c)
+		bw.n = 0
+		bw.c = 0
 	}
+}
+
+// Write16 写入
+func (bw *BitWriter) Write16(v uint16, n int) {
+
+}
+
+// Write32 写入
+func (bw *BitWriter) Write32(v uint32, n int) {
+
+}
+
+// Write64 写入
+func (bw *BitWriter) Write64(v uint64, n int) {
+
 }
