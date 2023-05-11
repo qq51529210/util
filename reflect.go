@@ -147,6 +147,7 @@ func IsNilOrEmpty(v reflect.Value) bool {
 	return false
 }
 
+// isStructNilOrEmpty
 func isStructNilOrEmpty(v reflect.Value) bool {
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
