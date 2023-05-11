@@ -1,6 +1,9 @@
 package util
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 // CopyStruct 拷贝 src 和 dst 中的相同名称和类型的字段，主要用于数据库结构与其他结构赋值。
 // 只复制一层，不支持引用类型和结构类型的字段。小心指针是浅拷贝。
@@ -113,4 +116,44 @@ func isSupportType(k reflect.Kind) bool {
 	return (k >= reflect.Bool && k <= reflect.Uint64) ||
 		k == reflect.Float32 || k == reflect.Float64 ||
 		k == reflect.Pointer || k == reflect.String
+}
+
+// IsNilOrEmpty 如果 v 是空指针，或者空值，返回 true
+// 指针的值是空值，不算空值，也返回 true
+func IsNilOrEmpty(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Ptr, reflect.Interface:
+		if v.IsNil() {
+			return true
+		}
+		v = v.Elem()
+		switch v.Kind() {
+		case reflect.Struct:
+			return isStructNilOrEmpty(v)
+		default:
+			return false
+		}
+	case reflect.Func:
+		return v.IsNil()
+	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	case reflect.Struct:
+		return isStructNilOrEmpty(v)
+	case reflect.Float32, reflect.Float64,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return v.IsZero()
+	}
+	return false
+}
+
+func isStructNilOrEmpty(v reflect.Value) bool {
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		fmt.Println(t.Field(i).Name)
+		if !IsNilOrEmpty(v.Field(i)) {
+			return false
+		}
+	}
+	return true
 }
