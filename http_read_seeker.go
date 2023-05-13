@@ -102,25 +102,6 @@ func (r *HTTPReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	return r.offset, nil
 }
 
-func (r *HTTPReadSeeker) seek(offset int64) (int64, error) {
-	if offset < r.offset {
-		// 回到前面，重新请求定位
-		err := r.seekHTTP(offset)
-		return r.offset, err
-	}
-	if offset > r.offset {
-		// 后面一点，读取
-		n, err := io.CopyN(io.Discard, r.res.Body, offset-r.offset)
-		if err != nil {
-			return r.offset, err
-		}
-		r.offset += n
-		return r.offset, nil
-	}
-	// 不变
-	return r.offset, nil
-}
-
 func (r *HTTPReadSeeker) seekHTTP(offset int64) error {
 	req, err := http.NewRequest(http.MethodGet, r.url, nil)
 	if err != nil {
