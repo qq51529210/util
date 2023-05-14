@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -96,5 +97,30 @@ func Test_CopyStruct(t *testing.T) {
 		dst.CopyValue3.A != src.CopyValue3.A || dst.CopyValue3.B != src.CopyValue3.B {
 		t.FailNow()
 	}
+}
 
+type StructToMap1 struct {
+	A int
+	B *string
+}
+
+type StructToMap2 struct {
+	A int
+	B string
+}
+
+type StructToMap3 struct {
+	A int
+	B string
+	StructToMap1
+	C StructToMap2
+	D *StructToMap1
+	E *StructToMap2
+}
+
+func Test_StructToMap(t *testing.T) {
+	v := new(StructToMap3)
+	v.E = new(StructToMap2)
+	m := StructToMap(v)
+	fmt.Println(m)
 }
