@@ -78,20 +78,20 @@ func CopyStruct(dst, src any) {
 // copyStruct 封装 CopyStruct 代码
 func copyStruct(dst, src reflect.Value) {
 	// type
-	srcType, dstType := src.Type(), dst.Type()
+	srcType := src.Type()
 	for i := 0; i < srcType.NumField(); i++ {
 		// 相同名称
 		srcTypeField := srcType.Field(i)
-		dstTypeField, ok := dstType.FieldByName(srcTypeField.Name)
-		if !ok {
+		dstField := dst.FieldByName(srcTypeField.Name)
+		if !dstField.IsValid() {
 			continue
 		}
+		dstFieldType := dstField.Type()
 		// 检查类型
 		srcField := src.Field(i)
-		dstField := dst.Field(i)
-		srcFieldKind := srcField.Kind()
-		dstFieldKind := dstField.Kind()
-		if srcTypeField.Type != dstTypeField.Type {
+		if srcTypeField.Type != dstFieldType {
+			srcFieldKind := srcField.Kind()
+			dstFieldKind := dstField.Kind()
 			// 看看是不是结构体
 			if srcFieldKind == reflect.Pointer {
 				if srcField.IsNil() {
