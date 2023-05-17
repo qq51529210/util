@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -42,9 +41,7 @@ func isNilOrEmpty(v reflect.Value) bool {
 
 // isStructNilOrEmpty 封装 IsNilOrEmpty 中判断 struct 的代码
 func isStructNilOrEmpty(v reflect.Value) bool {
-	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
-		fmt.Println(t.Field(i).Name)
 		if !isNilOrEmpty(v.Field(i)) {
 			return false
 		}
@@ -208,7 +205,6 @@ func structToMap(vVal reflect.Value) map[string]any {
 		fieldName := vType.Field(i).Name
 		field := vVal.Field(i)
 		if !field.IsValid() {
-			fmt.Println("field name", fieldName)
 			continue
 		}
 		fieldKind := field.Kind()
