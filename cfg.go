@@ -20,21 +20,22 @@ func ReadCfg(uri string, ptr any) error {
 	}
 	switch _u.Scheme {
 	case "http", "https":
-		return readCfgFromHTTP(uri, ptr)
+		return ReadHTTPCfg(uri, ptr)
 	default:
 		ext := filepath.Ext(uri)
 		switch ext {
 		case ".json":
-			return readCfgJSON(uri, ptr)
+			return ReadJSONCfg(uri, ptr)
 		case ".yaml", ".yml":
-			return readCfgYAML(uri, ptr)
+			return ReadYAMLCfg(uri, ptr)
 		default:
 			return fmt.Errorf("unsupported config type %s", ext)
 		}
 	}
 }
 
-func readCfgFromHTTP(uri string, ptr any) error {
+// ReadHTTPCfg 读取 http 的 json 或者 yaml 数据并解析到 ptr
+func ReadHTTPCfg(uri string, ptr any) error {
 	// 下载
 	res, err := http.Get(uri)
 	if err != nil {
@@ -56,9 +57,10 @@ func readCfgFromHTTP(uri string, ptr any) error {
 	return fmt.Errorf("unsupported content type %s", contentType)
 }
 
-func readCfgJSON(uri string, ptr any) error {
+// ReadJSONCfg 读取 json 格式的文件并解析到 ptr
+func ReadJSONCfg(path string, ptr any) error {
 	// 打开文件
-	file, err := os.Open(uri)
+	file, err := os.Open(path)
 	if err != nil {
 		return err
 	}
@@ -67,9 +69,10 @@ func readCfgJSON(uri string, ptr any) error {
 	return json.NewDecoder(file).Decode(ptr)
 }
 
-func readCfgYAML(uri string, ptr any) error {
+// ReadYAMLCfg 读取 yaml 格式的文件并解析到 ptr
+func ReadYAMLCfg(path string, ptr any) error {
 	// 打开文件
-	file, err := os.Open(uri)
+	file, err := os.Open(path)
 	if err != nil {
 		return err
 	}
