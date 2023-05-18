@@ -49,7 +49,8 @@ func isStructNilOrEmpty(v reflect.Value) bool {
 	return true
 }
 
-// CopyStruct 拷贝 src 和 dst 中的相同名称和类型的字段，主要用于数据库结构与其他结构赋值。
+// CopyStruct 拷贝 src 和 dst 中的相同名称和类型的字段，
+// 如果 dst 的字段不是零值则不拷贝。
 func CopyStruct(dst, src any) {
 	// dst
 	dstVal := reflect.ValueOf(dst)
@@ -78,6 +79,10 @@ func copyStruct(dst, src reflect.Value) {
 	srcType := src.Type()
 	for i := 0; i < srcType.NumField(); i++ {
 		// 相同名称
+		srcField := src.Field(i)
+		if !srcField.IsValid() || srcField.IsZero() {
+			continue
+		}
 		srcTypeField := srcType.Field(i)
 		dstField := dst.FieldByName(srcTypeField.Name)
 		if !dstField.IsValid() {
@@ -85,15 +90,11 @@ func copyStruct(dst, src reflect.Value) {
 		}
 		dstFieldType := dstField.Type()
 		// 检查类型
-		srcField := src.Field(i)
 		if srcTypeField.Type != dstFieldType {
 			srcFieldKind := srcField.Kind()
 			dstFieldKind := dstField.Kind()
 			// 看看是不是结构体
 			if srcFieldKind == reflect.Pointer {
-				if srcField.IsNil() {
-					continue
-				}
 				srcField = srcField.Elem()
 				srcFieldKind = srcField.Kind()
 			}
@@ -102,14 +103,11 @@ func copyStruct(dst, src reflect.Value) {
 				dstFieldKind = dstField.Kind()
 			}
 			if srcFieldKind == reflect.Struct && dstFieldKind == reflect.Struct {
-				if !dst.IsValid() {
-					continue
-				}
 				copyStruct(dstField, srcField)
 			}
 			continue
 		}
-		if !dstField.CanSet() {
+		if !dstField.CanSet() || !dstField.IsZero() {
 			continue
 		}
 		// 赋值
@@ -117,9 +115,8 @@ func copyStruct(dst, src reflect.Value) {
 	}
 }
 
-// CopyStructIgnore 拷贝 src 和 dst 中的相同名称和类型的字段，主要用于数据库结构与其他结构赋值。
-// 忽略 dst 中不为空的字段
-func CopyStructIgnore(dst, src any) {
+// CopyStructAll 拷贝 src 和 dst 中的相同名称和类型的字段
+func CopyStructAll(dst, src any) {
 	// dst
 	dstVal := reflect.ValueOf(dst)
 	if dstVal.Kind() != reflect.Pointer {
@@ -138,34 +135,31 @@ func CopyStructIgnore(dst, src any) {
 	if srcElem.Kind() != reflect.Struct {
 		panic("src must be struct pointer")
 	}
-	copyStructIgnore(dstElem, srcElem)
+	copyStructAll(dstElem, srcElem)
 }
 
-// copyStructIgnore 封装 CopyStructIgnore 代码
-func copyStructIgnore(dst, src reflect.Value) {
+// copyStructAll 封装 CopyStructAll 代码
+func copyStructAll(dst, src reflect.Value) {
 	// type
-	srcType, dstType := src.Type(), dst.Type()
+	srcType := src.Type()
 	for i := 0; i < srcType.NumField(); i++ {
 		// 相同名称
-		srcTypeField := srcType.Field(i)
-		dstTypeField, ok := dstType.FieldByName(srcTypeField.Name)
-		if !ok {
-			continue
-		}
-		dstField := dst.Field(i)
-		if !dstField.IsValid() || dstField.IsZero() {
-			continue
-		}
 		srcField := src.Field(i)
-		srcFieldKind := srcField.Kind()
-		dstFieldKind := dstField.Kind()
+		if !srcField.IsValid() || srcField.IsZero() {
+			continue
+		}
+		srcTypeField := srcType.Field(i)
+		dstField := dst.FieldByName(srcTypeField.Name)
+		if !dstField.IsValid() {
+			continue
+		}
+		dstFieldType := dstField.Type()
 		// 检查类型
-		if srcTypeField.Type != dstTypeField.Type {
+		if srcTypeField.Type != dstFieldType {
+			srcFieldKind := srcField.Kind()
+			dstFieldKind := dstField.Kind()
 			// 看看是不是结构体
 			if srcFieldKind == reflect.Pointer {
-				if srcField.IsNil() {
-					continue
-				}
 				srcField = srcField.Elem()
 				srcFieldKind = srcField.Kind()
 			}
@@ -174,9 +168,6 @@ func copyStructIgnore(dst, src reflect.Value) {
 				dstFieldKind = dstField.Kind()
 			}
 			if srcFieldKind == reflect.Struct && dstFieldKind == reflect.Struct {
-				if !dst.IsValid() {
-					continue
-				}
 				copyStruct(dstField, srcField)
 			}
 			continue
@@ -202,11 +193,11 @@ func structToMap(vVal reflect.Value) map[string]any {
 	vType := vVal.Type()
 	result := make(map[string]any)
 	for i := 0; i < vType.NumField(); i++ {
-		fieldName := vType.Field(i).Name
 		field := vVal.Field(i)
 		if !field.IsValid() {
 			continue
 		}
+		fieldName := vType.Field(i).Name
 		fieldKind := field.Kind()
 		if fieldKind == reflect.Pointer {
 			field = field.Elem()
@@ -218,6 +209,42 @@ func structToMap(vVal reflect.Value) map[string]any {
 		}
 		if fieldKind == reflect.Struct {
 			result[fieldName] = structToMap(field)
+		} else {
+			result[fieldName] = field.Interface()
+		}
+	}
+	return result
+}
+
+// StructToMapIgnore 将 v 转换为 map，v 必须是结构体
+// 忽略零值字段
+func StructToMapIgnore(v any) map[string]any {
+	return structToMapIgnore(reflect.ValueOf(v))
+}
+
+// structToMapIgnore 封装 StructToMapIgnore 的代码
+func structToMapIgnore(vVal reflect.Value) map[string]any {
+	if vVal.Kind() == reflect.Pointer {
+		vVal = vVal.Elem()
+	}
+	vType := vVal.Type()
+	result := make(map[string]any)
+	for i := 0; i < vType.NumField(); i++ {
+		field := vVal.Field(i)
+		if !field.IsValid() || field.IsZero() {
+			continue
+		}
+		fieldName := vType.Field(i).Name
+		fieldKind := field.Kind()
+		if fieldKind == reflect.Pointer {
+			field = field.Elem()
+			fieldKind = field.Kind()
+			if fieldKind == reflect.Invalid {
+				continue
+			}
+		}
+		if fieldKind == reflect.Struct {
+			result[fieldName] = structToMapIgnore(field)
 		} else {
 			result[fieldName] = field.Interface()
 		}
