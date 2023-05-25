@@ -11,7 +11,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
-	github.com/qq51529210/log v0.0.0-20230516063534-80e6e0a1e8f6 // indirect
+	github.com/qq51529210/log v0.0.0-20230525150655-59dc4fc1aeae // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	golang.org/x/sys v0.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
