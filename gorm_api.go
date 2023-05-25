@@ -108,20 +108,20 @@ func (g *GORMDB[K, M]) Save(m M) (int64, error) {
 }
 
 // Add 添加
-func (g *GORMDB[K, M]) Add(m *M) (int64, error) {
+func (g *GORMDB[K, M]) Add(m M) (int64, error) {
 	db := g.db.Create(m)
 	return db.RowsAffected, db.Error
 }
 
 // Update 根据主键更新
-func (g *GORMDB[K, M]) Update(m *M) (int64, error) {
+func (g *GORMDB[K, M]) Update(m M) (int64, error) {
 	db := g.db.Updates(m)
 	return db.RowsAffected, db.Error
 }
 
 // Delete 根据主键删除
-func (g *GORMDB[K, M]) Delete(m *M) (int64, error) {
-	db := g.db.Delete(m)
+func (g *GORMDB[K, M]) Delete(k K) (int64, error) {
+	db := g.db.Delete(g.m, k)
 	return db.RowsAffected, db.Error
 }
 
@@ -132,7 +132,7 @@ func (g *GORMDB[K, M]) BatchDelete(ks []K) (int64, error) {
 }
 
 // Get 根据主键查询
-func (g *GORMDB[K, M]) Get(m *M) (bool, error) {
+func (g *GORMDB[K, M]) Get(m M) (bool, error) {
 	err := g.db.First(m).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -144,7 +144,7 @@ func (g *GORMDB[K, M]) Get(m *M) (bool, error) {
 }
 
 // Select 根据主键查询，可选择列
-func (g *GORMDB[K, M]) Select(m *M, c ...string) (bool, error) {
+func (g *GORMDB[K, M]) Select(m M, c ...string) (bool, error) {
 	db := g.db
 	if len(c) > 0 {
 		db = db.Select(c)
@@ -160,8 +160,8 @@ func (g *GORMDB[K, M]) Select(m *M, c ...string) (bool, error) {
 }
 
 // In 根据主键查询，where in ks
-func (g *GORMDB[K, M]) In(ks []K) ([]*M, error) {
-	var ms []*M
+func (g *GORMDB[K, M]) In(ks []K) ([]M, error) {
+	var ms []M
 	err := g.db.Find(&ms, ks).Error
 	if err != nil {
 		return nil, err
