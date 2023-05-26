@@ -53,6 +53,10 @@ func (r *HTTPReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	// 那么没必要再去发起一个请求，直接读就可以了。
 	switch whence {
 	case io.SeekCurrent:
+		// 不变
+		if offset < 1 {
+			return r.offset, nil
+		}
 		// 如果小，读取就行
 		if offset < httpReadSeekerHeaderLen {
 			_, err := io.CopyN(io.Discard, r.res.Body, offset)
@@ -64,8 +68,13 @@ func (r *HTTPReadSeeker) Seek(offset int64, whence int) (int64, error) {
 			return r.offset, nil
 		}
 		// 距离很大，重新请求
-		offset = r.offset + offset
+		offset += r.offset
 	case io.SeekEnd:
+		// 最后一个
+		if offset < 1 {
+			r.offset = r.total
+			return r.offset, nil
+		}
 		// 从开始的偏移
 		offset = r.total - offset
 		// 走 io.SeekStart 的流程
@@ -102,25 +111,6 @@ func (r *HTTPReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	return r.offset, nil
 }
 
-func (r *HTTPReadSeeker) seek(offset int64) (int64, error) {
-	if offset < r.offset {
-		// 回到前面，重新请求定位
-		err := r.seekHTTP(offset)
-		return r.offset, err
-	}
-	if offset > r.offset {
-		// 后面一点，读取
-		n, err := io.CopyN(io.Discard, r.res.Body, offset-r.offset)
-		if err != nil {
-			return r.offset, err
-		}
-		r.offset += n
-		return r.offset, nil
-	}
-	// 不变
-	return r.offset, nil
-}
-
 func (r *HTTPReadSeeker) seekHTTP(offset int64) error {
 	req, err := http.NewRequest(http.MethodGet, r.url, nil)
 	if err != nil {
@@ -129,7 +119,7 @@ func (r *HTTPReadSeeker) seekHTTP(offset int64) error {
 	if r.total < 1 {
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
 	} else {
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", offset, r.total))
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", offset, r.total-1))
 	}
 	if r.eTag != "" {
 		req.Header.Set("If-Range", r.eTag)
