@@ -66,3 +66,13 @@ func RandomUpper(n int) string {
 func RandomString(n int) string {
 	return _random.rand(n, 3)
 }
+
+// RandomInt 返回随机的整数
+func RandomInt() int {
+	return _random.r.Int()
+}
+
+// RandomIntn 返回随机的整数
+func RandomIntn(n int) int {
+	return _random.r.Intn(n)
+}
