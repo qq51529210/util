@@ -2,6 +2,8 @@ package util
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -56,7 +58,7 @@ func (g *GORMDB[K, M]) Model() *gorm.DB {
 
 // All 返回列表查询结果
 func (g *GORMDB[K, M]) All(query GORMQuery) ([]M, error) {
-	db := g.db
+	db := g.db.Model(g.m)
 	// 条件
 	if query != nil {
 		db = query.Init(db)
@@ -73,7 +75,7 @@ func (g *GORMDB[K, M]) All(query GORMQuery) ([]M, error) {
 
 // List 返回列表查询结果
 func (g *GORMDB[K, M]) List(query GORMQuery, page *GORMPage, res *GORMList[M]) error {
-	db := g.db
+	db := g.db.Model(g.m)
 	// 条件
 	if query != nil {
 		db = query.Init(db)
@@ -102,14 +104,6 @@ func (g *GORMDB[K, M]) List(query GORMQuery, page *GORMPage, res *GORMList[M]) e
 	}
 	//
 	return nil
-}
-
-// Like 生成 column like %name%
-func (g *GORMDB[K, M]) Like(column, value string) *gorm.DB {
-	if value == "" {
-		return g.db
-	}
-	return g.db.Where(fmt.Sprintf("`%s` LIKE '%%%s%%'", column, value))
 }
 
 // Save 添加
@@ -178,4 +172,84 @@ func (g *GORMDB[K, M]) In(ks []K) ([]M, error) {
 		return nil, err
 	}
 	return ms, nil
+}
+
+var (
+	// GORMInitQueryTag 是 GORMInitQuery 解析 tag 的名称
+	GORMInitQueryTag = "gq"
+)
+
+// Query 将 v 格式化到 where ，全部是 AND ，略过空值
+//
+//	type query struct {
+//	  A *int64 `gq:"eq"` db.Where("`A` = ?", A)
+//	  B string `gq:"like"` db.Where("`B` LiKE %%s%%", B)
+//	  C *int64 `gq:"gt=A"` db.Where("`A` < ?", C)
+//	  D *int64 `gq:"gte=A"` db.Where("`A` <= ?", D)
+//	  E *int64 `gq:"lt=A"` db.Where("`A` > ?", E)
+//	  F *int64 `gq:"let=A"` db.Where("`A` >= ?", F)
+//	  G *int64 `gq:"neq"` db.Where("`G` != ?", G)
+//	}
+//
+// 先这样，以后遇到再加
+func GORMInitQuery(db *gorm.DB, q any) *gorm.DB {
+	v := reflect.ValueOf(q)
+	vk := v.Kind()
+	if vk == reflect.Pointer {
+		v = v.Elem()
+		vk = v.Kind()
+	}
+	if vk != reflect.Struct {
+		panic("v must be struct or struct ptr")
+	}
+	// type
+	vt := v.Type()
+	for i := 0; i < vt.NumField(); i++ {
+		fv := v.Field(i)
+		if !fv.IsValid() && fv.IsZero() {
+			continue
+		}
+		fvk := fv.Kind()
+		if fvk == reflect.Pointer {
+			fv = fv.Elem()
+			fvk = fv.Kind()
+		}
+		// 结构
+		if fvk == reflect.Struct {
+			GORMInitQuery(db, fv)
+			continue
+		}
+		ft := vt.Field(i)
+		tn := ft.Tag.Get(GORMInitQueryTag)
+		switch tn {
+		case "eq":
+			db = db.Where(fmt.Sprintf("`%s` = ?", ft.Name), fv.Interface())
+		case "neq":
+			db = db.Where(fmt.Sprintf("`%s` != ?", ft.Name), fv.Interface())
+		case "like":
+			db = db.Where(fmt.Sprintf("`%s` LIKE ?", ft.Name), fmt.Sprintf("%%%v%%", fv.Interface()))
+		default:
+			p := strings.TrimPrefix(tn, "gt=")
+			if p != tn {
+				db = db.Where(fmt.Sprintf("`%s` < ?", p), fv.Interface())
+				break
+			}
+			p = strings.TrimPrefix(tn, "gte=")
+			if p != tn {
+				db = db.Where(fmt.Sprintf("`%s` <= ?", p), fv.Interface())
+				break
+			}
+			p = strings.TrimPrefix(tn, "lt=")
+			if p != tn {
+				db = db.Where(fmt.Sprintf("`%s` > ?", p), fv.Interface())
+				break
+			}
+			p = strings.TrimPrefix(tn, "lte=")
+			if p != tn {
+				db = db.Where(fmt.Sprintf("`%s` >= ?", p), fv.Interface())
+			}
+		}
+	}
+	//
+	return db
 }
