@@ -21,8 +21,8 @@ type GORMQuery interface {
 	Init(*gorm.DB) *gorm.DB
 }
 
-// GORMListData 是 GORMList 的返回值
-type GORMListData[M any] struct {
+// GORMList 是 GORMList 的返回值
+type GORMList[M any] struct {
 	// 总数
 	Total int64 `json:"total"`
 	// 列表
@@ -43,6 +43,12 @@ func NewGORMDB[K, M any](db *gorm.DB, m M) *GORMDB[K, M] {
 	}
 }
 
+// Init 初始化
+func (g *GORMDB[K, M]) Init(db *gorm.DB, m M) {
+	g.db = db
+	g.m = m
+}
+
 // All 返回列表查询结果
 func (g *GORMDB[K, M]) All(query GORMQuery) ([]M, error) {
 	db := g.db
@@ -61,7 +67,7 @@ func (g *GORMDB[K, M]) All(query GORMQuery) ([]M, error) {
 }
 
 // List 返回列表查询结果
-func (g *GORMDB[K, M]) List(query GORMQuery, page *GORMPage, res *GORMListData[M]) error {
+func (g *GORMDB[K, M]) List(query GORMQuery, page *GORMPage, res *GORMList[M]) error {
 	db := g.db
 	// 条件
 	if query != nil {
