@@ -10,34 +10,42 @@ import (
 )
 
 const (
-	httpReadSeekerHeaderLen = 1024
+	httpReadSeekCloserHeaderLen = 1024
 )
 
-// HTTPReadSeeker 实现 io.ReadSeeker，
-// 服务必须支持 Range 哦
-type HTTPReadSeeker struct {
+var (
+	errHTTPReadSeekCloserSeekOffset = errors.New("error seek offset")
+)
+
+// HTTPReadSeekCloser 实现 io.ReadSeekCloseer，服务必须支持 Range 哦
+type HTTPReadSeekCloser struct {
+	req *http.Request
 	res *http.Response
-	// 资源地址
-	url string
 	// 请求头的 ETag
 	eTag string
 	// 当前位置
 	offset int64
-	// 总字节
+	// 数据总量
 	total int64
 }
 
 // Close 实现 io.Closer 接口，主要用于关闭 response.body
-func (r *HTTPReadSeeker) Close() error {
-	if r.res != nil {
-		r.res.Body.Close()
-		r.res = nil
+func (r *HTTPReadSeekCloser) Close() error {
+	res := r.res
+	r.res = nil
+	if res != nil {
+		res.Body.Close()
 	}
 	return nil
 }
 
 // Read 实现 io.Reader 接口
-func (r *HTTPReadSeeker) Read(buf []byte) (int, error) {
+func (r *HTTPReadSeekCloser) Read(buf []byte) (int, error) {
+	//
+	if r.offset >= r.total {
+		return 0, io.EOF
+	}
+	//
 	n, err := r.res.Body.Read(buf)
 	if err != nil {
 		return n, err
@@ -48,122 +56,125 @@ func (r *HTTPReadSeeker) Read(buf []byte) (int, error) {
 }
 
 // Seek 实现 io.Seeker 接口
-func (r *HTTPReadSeeker) Seek(offset int64, whence int) (int64, error) {
+func (r *HTTPReadSeekCloser) Seek(offset int64, whence int) (int64, error) {
 	// 如果 offset 计算后的距离比 httpReadSeekerHeaderLen 小，
 	// 那么没必要再去发起一个请求，直接读就可以了。
 	switch whence {
 	case io.SeekCurrent:
 		// 不变
-		if offset < 1 {
+		if offset == 0 {
 			return r.offset, nil
 		}
-		// 如果小，读取就行
-		if offset < httpReadSeekerHeaderLen {
-			_, err := io.CopyN(io.Discard, r.res.Body, offset)
-			if err != nil {
-				return r.offset, err
-			}
-			r.offset += offset
-			//
-			return r.offset, nil
-		}
-		// 距离很大，重新请求
+		// 偏移
 		offset += r.offset
 	case io.SeekEnd:
-		// 最后一个
-		if offset < 1 {
-			r.offset = r.total
-			return r.offset, nil
+		// 整数
+		if offset == 0 {
+			return r.total, nil
 		}
-		// 从开始的偏移
-		offset = r.total - offset
-		// 走 io.SeekStart 的流程
-		fallthrough
+		// 偏移
+		offset += r.total
 	case io.SeekStart:
-		// 没变化
+		// 不变
 		if offset == r.offset {
 			return r.offset, nil
 		}
-		// 在后面
-		if offset > r.offset {
-			n := offset - r.offset
-			// 如果小，读取就行
-			if n < httpReadSeekerHeaderLen {
-				_, err := io.CopyN(io.Discard, r.res.Body, n)
-				if err != nil {
-					return r.offset, err
-				}
-				r.offset += n
-				//
-				return r.offset, nil
-			}
-		}
-		// 在前面，或者距离很大，重新请求
 	default:
 		// 错误的
 		return r.offset, fmt.Errorf("seek error whence %d", whence)
 	}
-	//
-	err := r.seekHTTP(offset)
+	// 负数
+	if offset < 0 {
+		return r.offset, errHTTPReadSeekCloserSeekOffset
+	}
+	// 结尾
+	if offset >= r.total {
+		r.offset = offset
+		return offset, nil
+	}
+	// 偏移小，读取
+	if offset > r.offset {
+		n := offset - r.offset
+		if n < httpReadSeekCloserHeaderLen {
+			_, err := io.CopyN(io.Discard, r.res.Body, n)
+			if err != nil {
+				return r.offset, err
+			}
+			r.offset = offset
+			//
+			return r.offset, nil
+		}
+	}
+	// 请求
+	err := r.seek(offset)
 	if err != nil {
 		return r.offset, err
 	}
 	return r.offset, nil
 }
 
-func (r *HTTPReadSeeker) seekHTTP(offset int64) error {
-	req, err := http.NewRequest(http.MethodGet, r.url, nil)
-	if err != nil {
-		return err
+func (r *HTTPReadSeekCloser) seek(offset int64) error {
+	// 关闭上一个响应的 body
+	res := r.res
+	r.res = nil
+	if res != nil {
+		res.Body.Close()
 	}
+	// 重新设置
 	if r.total < 1 {
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
+		r.req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
 	} else {
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", offset, r.total-1))
+		r.req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", offset, r.total))
 	}
 	if r.eTag != "" {
-		req.Header.Set("If-Range", r.eTag)
+		r.req.Header.Set("If-Range", r.eTag)
 	}
-	req.Header.Set("Accept-Ranges", "bytes")
-	//
-	if r.res != nil {
-		r.res.Body.Close()
-	}
-	r.res, err = http.DefaultClient.Do(req)
+	// 发起请求
+	var err error
+	res, err = http.DefaultClient.Do(r.req)
 	if err != nil {
 		return err
 	}
+	r.res = res
+	// 状态码
 	if r.res.StatusCode != http.StatusPartialContent {
 		return fmt.Errorf("error status code %d", r.res.StatusCode)
 	}
 	r.eTag = r.res.Header.Get("ETag")
-	//
+	// 解析出 pos 和 total
 	contentRange := r.res.Header.Get("Content-Range")
 	if contentRange == "" {
 		return errors.New("missing content-range header")
 	}
-	//
 	i := strings.LastIndexByte(contentRange, '/')
 	if i < 1 {
 		return nil
 	}
-	n, err := strconv.ParseInt(contentRange[i+1:], 10, 64)
+	total, err := strconv.ParseInt(contentRange[i+1:], 10, 64)
 	if err != nil {
 		return fmt.Errorf("error content range %s", contentRange)
 	}
 	r.offset = offset
-	r.total = n
+	r.total = total
 	//
 	return nil
 }
 
-// NewHTTPReadSeeker 返回新的 HTTPReadSeeker ，开始会请求一次
-func NewHTTPReadSeeker(url string) (*HTTPReadSeeker, error) {
-	r := new(HTTPReadSeeker)
-	r.url = url
-	err := r.seekHTTP(0)
+// NewHTTPReadSeeker 返回新的 HTTPReadSeekCloser ，开始会请求一次
+func NewHTTPReadSeeker(url string, offset int64) (*HTTPReadSeekCloser, error) {
+	// 请求
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept-Ranges", "bytes")
+	// 创建
+	r := new(HTTPReadSeekCloser)
+	r.req = req
+	err = r.seek(offset)
+	if err != nil {
+		return nil, err
+	}
+	//
 	return r, nil
 }
