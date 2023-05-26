@@ -49,6 +49,11 @@ func (g *GORMDB[K, M]) Init(db *gorm.DB, m M) {
 	g.m = m
 }
 
+// Model 返回
+func (g *GORMDB[K, M]) Model() *gorm.DB {
+	return g.db.Model(g.m)
+}
+
 // All 返回列表查询结果
 func (g *GORMDB[K, M]) All(query GORMQuery) ([]M, error) {
 	db := g.db
