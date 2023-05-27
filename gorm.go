@@ -51,7 +51,9 @@ func gormMysql(uri string, cfg *gorm.Config) (*gorm.DB, error) {
 		return nil, err
 	}
 	return gorm.Open(gormmysql.New(gormmysql.Config{
-		Conn: _db,
+		DSNConfig: _cfg,
+		DSN:       uri,
+		Conn:      _db,
 	}), cfg)
 }
 
