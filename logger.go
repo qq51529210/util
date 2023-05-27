@@ -14,9 +14,7 @@ type LogCfg struct {
 }
 
 func InitLog(cfg *LogCfg) error {
-	var logCfg log.FileConfig
-	CopyStruct(&logCfg, cfg)
-	f, err := log.NewFile(&logCfg)
+	f, err := log.NewFile(&cfg.FileConfig)
 	if err != nil {
 		return err
 	}
