@@ -8,7 +8,7 @@ var (
 
 // LogCfg 日志的配置
 type LogCfg struct {
-	log.FileConfig
+	log.FileConfig `yaml:",inline"`
 	// 禁用的日志级别
 	DisableLevel []string `json:"disableLevel" yaml:"disableLevel" validate:"omitempty,dive,oneof=debug info warn error"`
 }
