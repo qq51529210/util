@@ -224,33 +224,40 @@ func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 		}
 		ft := vt.Field(i)
 		tn := ft.Tag.Get(GORMInitQueryTag)
-		switch tn {
-		case "eq":
-			db = db.Where(fmt.Sprintf("`%s` = ?", ft.Name), fv.Interface())
-		case "neq":
-			db = db.Where(fmt.Sprintf("`%s` != ?", ft.Name), fv.Interface())
-		case "like":
-			db = db.Where(fmt.Sprintf("`%s` LIKE ?", ft.Name), fmt.Sprintf("%%%v%%", fv.Interface()))
-		default:
-			p := strings.TrimPrefix(tn, "gt=")
-			if p != tn {
-				db = db.Where(fmt.Sprintf("`%s` < ?", p), fv.Interface())
-				break
-			}
-			p = strings.TrimPrefix(tn, "gte=")
-			if p != tn {
-				db = db.Where(fmt.Sprintf("`%s` <= ?", p), fv.Interface())
-				break
-			}
-			p = strings.TrimPrefix(tn, "lt=")
-			if p != tn {
-				db = db.Where(fmt.Sprintf("`%s` > ?", p), fv.Interface())
-				break
-			}
-			p = strings.TrimPrefix(tn, "lte=")
-			if p != tn {
-				db = db.Where(fmt.Sprintf("`%s` >= ?", p), fv.Interface())
-			}
+		p := strings.TrimPrefix(tn, "eq=")
+		if p != tn {
+			db = db.Where(fmt.Sprintf("`%s` = ?", p), fv.Interface())
+			continue
+		}
+		p = strings.TrimPrefix(tn, "neq=")
+		if p != tn {
+			db = db.Where(fmt.Sprintf("`%s` != ?", p), fv.Interface())
+			continue
+		}
+		p = strings.TrimPrefix(tn, "like=")
+		if p != tn {
+			db = db.Where(fmt.Sprintf("`%s` LIKE ?", p), fv.Interface())
+			continue
+		}
+		p = strings.TrimPrefix(tn, "gt=")
+		if p != tn {
+			db = db.Where(fmt.Sprintf("`%s` < ?", p), fv.Interface())
+			continue
+		}
+		p = strings.TrimPrefix(tn, "gte=")
+		if p != tn {
+			db = db.Where(fmt.Sprintf("`%s` <= ?", p), fv.Interface())
+			continue
+		}
+		p = strings.TrimPrefix(tn, "lt=")
+		if p != tn {
+			db = db.Where(fmt.Sprintf("`%s` > ?", p), fv.Interface())
+			continue
+		}
+		p = strings.TrimPrefix(tn, "lte=")
+		if p != tn {
+			db = db.Where(fmt.Sprintf("`%s` >= ?", p), fv.Interface())
+			continue
 		}
 	}
 	//
