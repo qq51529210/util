@@ -50,9 +50,12 @@ func gormMysql(uri string, cfg *gorm.Config) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, err = _db.Exec(fmt.Sprintf("USE `%s`;", _cfg.DBName))
+	if err != nil {
+		return nil, err
+	}
 	return gorm.Open(gormmysql.New(gormmysql.Config{
 		DSNConfig: _cfg,
-		DSN:       uri,
 		Conn:      _db,
 	}), cfg)
 }
