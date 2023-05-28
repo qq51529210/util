@@ -202,7 +202,10 @@ func GORMInitQuery(db *gorm.DB, q any) *gorm.DB {
 	if vk != reflect.Struct {
 		panic("v must be struct or struct ptr")
 	}
-	// type
+	return gormInitQuery(db, v)
+}
+
+func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 	vt := v.Type()
 	for i := 0; i < vt.NumField(); i++ {
 		fv := v.Field(i)
@@ -216,7 +219,7 @@ func GORMInitQuery(db *gorm.DB, q any) *gorm.DB {
 		}
 		// 结构
 		if fvk == reflect.Struct {
-			GORMInitQuery(db, fv)
+			gormInitQuery(db, fv)
 			continue
 		}
 		ft := vt.Field(i)
