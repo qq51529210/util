@@ -39,11 +39,11 @@ func NewGORMCache[K comparable, M any](
 	whereKeysFunc func(*gorm.DB, []K) *gorm.DB,
 ) *GORMCache[K, M] {
 	c := new(GORMCache[K, M])
-	c.init(db, cache, newFunc, keyFunc, whereKeyFunc, whereKeysFunc)
+	c.Init(db, cache, newFunc, keyFunc, whereKeyFunc, whereKeysFunc)
 	return c
 }
 
-func (c *GORMCache[K, M]) init(
+func (c *GORMCache[K, M]) Init(
 	db *gorm.DB,
 	cache bool,
 	newFunc func() M,
