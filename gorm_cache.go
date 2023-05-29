@@ -65,6 +65,10 @@ func (c *GORMCache[K, M]) IsCache() bool {
 	return c.cache
 }
 
+func (c *GORMCache[K, M]) DB() *gorm.DB {
+	return c.db
+}
+
 func (c *GORMCache[K, M]) Model() *gorm.DB {
 	return c.db.Model(c.m)
 }
