@@ -394,6 +394,11 @@ func (c *GORMCache[K, M]) Total() int64 {
 	return n
 }
 
+// List 查询数据库
+func (c *GORMCache[K, M]) List(page *GORMPage, query GORMQuery, res *GORMList[M]) error {
+	return gormList(c.db, page, query, res)
+}
+
 // SearchGORMCache 模板化的 Search
 func SearchGORMCache[T any, K comparable, M any](c *GORMCache[K, M], match func(M) (bool, T)) ([]T, error) {
 	var vv []T

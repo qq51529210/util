@@ -74,36 +74,8 @@ func (g *GORMDB[K, M]) All(query GORMQuery) ([]M, error) {
 }
 
 // List 返回列表查询结果
-func (g *GORMDB[K, M]) List(query GORMQuery, page *GORMPage, res *GORMList[M]) error {
-	db := g.db.Model(g.m)
-	// 条件
-	if query != nil {
-		db = query.Init(db)
-	}
-	// 总数
-	err := db.Count(&res.Total).Error
-	if err != nil {
-		return err
-	}
-	if page != nil {
-		// 分页
-		if page.Offset != nil {
-			db = db.Offset(*page.Offset)
-		}
-		if page.Count != nil {
-			db = db.Limit(*page.Count)
-		}
-		// 排序
-		if page.Order != "" {
-			db = db.Order(page.Order)
-		}
-	}
-	err = db.Find(&res.Data).Error
-	if err != nil {
-		return err
-	}
-	//
-	return nil
+func (g *GORMDB[K, M]) List(page *GORMPage, query GORMQuery, res *GORMList[M]) error {
+	return gormList(g.db, page, query, res)
 }
 
 // Save 添加
@@ -262,4 +234,35 @@ func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 	}
 	//
 	return db
+}
+
+func gormList[M any](db *gorm.DB, page *GORMPage, query GORMQuery, res *GORMList[M]) error {
+	// 条件
+	if query != nil {
+		db = query.Init(db)
+	}
+	// 总数
+	err := db.Count(&res.Total).Error
+	if err != nil {
+		return err
+	}
+	if page != nil {
+		// 分页
+		if page.Offset != nil {
+			db = db.Offset(*page.Offset)
+		}
+		if page.Count != nil {
+			db = db.Limit(*page.Count)
+		}
+		// 排序
+		if page.Order != "" {
+			db = db.Order(page.Order)
+		}
+	}
+	err = db.Find(&res.Data).Error
+	if err != nil {
+		return err
+	}
+	//
+	return nil
 }
