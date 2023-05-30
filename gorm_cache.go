@@ -323,6 +323,22 @@ func (c *GORMCache[K, M]) BatchDelete(ks []K) (int64, error) {
 	return db.RowsAffected, nil
 }
 
+// BatchDeleteCache 删除内存
+func (c *GORMCache[K, M]) BatchDeleteCache(fn func(M) bool) {
+	// 缓存
+	if !c.cache {
+		return
+	}
+	// 上锁
+	c.Lock()
+	defer c.Unlock()
+	for k, m := range c.D {
+		if fn(m) {
+			delete(c.D, k)
+		}
+	}
+}
+
 // Search 在内存中查找
 func (c *GORMCache[K, M]) Search(match func(M) bool) ([]M, error) {
 	var mm []M
