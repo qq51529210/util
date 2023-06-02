@@ -8,6 +8,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// GORMTime 创建和更新时间
+type GORMTime struct {
+	// 数据库的创建时间，时间戳
+	CreatedAt int64 `json:"createdAt" gorm:""`
+	// 数据库的更新时间，时间戳
+	UpdatedAt int64 `json:"updatedAt" gorm:""`
+}
+
 // GORMPage 分页查询参数
 type GORMPage struct {
 	// 偏移，小于 0 不匹配
