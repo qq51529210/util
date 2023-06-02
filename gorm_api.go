@@ -189,11 +189,15 @@ func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 	vt := v.Type()
 	for i := 0; i < vt.NumField(); i++ {
 		fv := v.Field(i)
-		if !fv.IsValid() && fv.IsZero() {
+		if !fv.IsValid() {
 			continue
 		}
 		fvk := fv.Kind()
 		if fvk == reflect.Pointer {
+			// 空指针
+			if fv.IsNil() {
+				continue
+			}
 			fv = fv.Elem()
 			fvk = fv.Kind()
 		}
