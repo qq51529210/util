@@ -209,9 +209,17 @@ func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 			db = db.Where(fmt.Sprintf("`%s` = ?", p), fv.Interface())
 			continue
 		}
+		if tn == "eq" {
+			db = db.Where(fmt.Sprintf("`%s` = ?", ft.Name), fv.Interface())
+			continue
+		}
 		p = strings.TrimPrefix(tn, "neq=")
 		if p != tn {
 			db = db.Where(fmt.Sprintf("`%s` != ?", p), fv.Interface())
+			continue
+		}
+		if tn == "neq" {
+			db = db.Where(fmt.Sprintf("`%s` != ?", ft.Name), fv.Interface())
 			continue
 		}
 		p = strings.TrimPrefix(tn, "like=")
@@ -219,9 +227,17 @@ func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 			db = db.Where(fmt.Sprintf("`%s` LIKE ?", p), fv.Interface())
 			continue
 		}
+		if tn == "like" {
+			db = db.Where(fmt.Sprintf("`%s` LIKE ?", ft.Name), fv.Interface())
+			continue
+		}
 		p = strings.TrimPrefix(tn, "gt=")
 		if p != tn {
 			db = db.Where(fmt.Sprintf("`%s` < ?", p), fv.Interface())
+			continue
+		}
+		if tn == "gt" {
+			db = db.Where(fmt.Sprintf("`%s` < ?", ft.Name), fv.Interface())
 			continue
 		}
 		p = strings.TrimPrefix(tn, "gte=")
@@ -229,14 +245,26 @@ func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 			db = db.Where(fmt.Sprintf("`%s` <= ?", p), fv.Interface())
 			continue
 		}
+		if tn == "gte" {
+			db = db.Where(fmt.Sprintf("`%s` <= ?", ft.Name), fv.Interface())
+			continue
+		}
 		p = strings.TrimPrefix(tn, "lt=")
 		if p != tn {
 			db = db.Where(fmt.Sprintf("`%s` > ?", p), fv.Interface())
 			continue
 		}
+		if tn == "lt" {
+			db = db.Where(fmt.Sprintf("`%s` > ?", ft.Name), fv.Interface())
+			continue
+		}
 		p = strings.TrimPrefix(tn, "lte=")
 		if p != tn {
 			db = db.Where(fmt.Sprintf("`%s` >= ?", p), fv.Interface())
+			continue
+		}
+		if tn == "lte" {
+			db = db.Where(fmt.Sprintf("`%s` >= ?", ft.Name), fv.Interface())
 			continue
 		}
 	}
