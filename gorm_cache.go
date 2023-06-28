@@ -16,7 +16,7 @@ type GORMCache[K comparable, M any] struct {
 	// 数据
 	D map[K]M
 	// gorm.Model 要的模型
-	m M
+	M M
 	// 标记数据 d 是否需要重新加载
 	ok bool
 	// 创建函数
@@ -43,6 +43,7 @@ func NewGORMCache[K comparable, M any](
 	return c
 }
 
+// Init 初始化字段
 func (c *GORMCache[K, M]) Init(
 	db *gorm.DB,
 	cache bool,
@@ -58,19 +59,52 @@ func (c *GORMCache[K, M]) Init(
 	c.key = keyFunc
 	c.whereKey = whereKeyFunc
 	c.whereKeys = whereKeysFunc
-	c.m = newFunc()
+	c.M = newFunc()
 }
 
+// IsCache 返回是否开启缓存
 func (c *GORMCache[K, M]) IsCache() bool {
 	return c.cache
 }
 
+// DB 返回 db
 func (c *GORMCache[K, M]) DB() *gorm.DB {
 	return c.db
 }
 
+// Model 返回加载模型的 db
 func (c *GORMCache[K, M]) Model() *gorm.DB {
-	return c.db.Model(c.m)
+	return c.db.Model(c.M)
+}
+
+// LoadWhere 加载并替换指定条件的数据
+func (c *GORMCache[K, M]) LoadWhere(whereFunc func(db *gorm.DB) *gorm.DB) error {
+	// 不启用
+	if !c.cache {
+		return nil
+	}
+	//
+	c.Lock()
+	err := c.loadWhere(whereFunc(c.db))
+	c.Unlock()
+	//
+	return err
+}
+
+// loadWhere 加载并替换指定条件的数据
+func (c *GORMCache[K, M]) loadWhere(db *gorm.DB) error {
+	var models []M
+	err := db.Find(&models).Error
+	if err != nil {
+		c.ok = false
+		return err
+	}
+	// 加载或替换
+	for _, model := range models {
+		c.D[c.key(model)] = model
+	}
+	//
+	return nil
 }
 
 // Check 检查内存数据是否需要重新加载，同步
@@ -83,6 +117,7 @@ func (c *GORMCache[K, M]) LoadAll() error {
 	c.Lock()
 	err := c.loadAll()
 	c.Unlock()
+	//
 	return err
 }
 
@@ -290,7 +325,7 @@ func (c *GORMCache[K, M]) BatchSave(ms []M) (int64, error) {
 // Delete 删除
 func (c *GORMCache[K, M]) Delete(k K) (int64, error) {
 	// 数据库
-	db := c.whereKey(c.db, k).Delete(c.m)
+	db := c.whereKey(c.db, k).Delete(c.M)
 	if db.Error != nil {
 		return db.RowsAffected, db.Error
 	}
@@ -307,7 +342,7 @@ func (c *GORMCache[K, M]) Delete(k K) (int64, error) {
 // BatchDelete 批量删除
 func (c *GORMCache[K, M]) BatchDelete(ks []K) (int64, error) {
 	// 数据库
-	db := c.whereKeys(c.db, ks).Delete(c.m)
+	db := c.whereKeys(c.db, ks).Delete(c.M)
 	if db.Error != nil {
 		return db.RowsAffected, db.Error
 	}
