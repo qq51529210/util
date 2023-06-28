@@ -62,7 +62,7 @@ func (c *GORMCache[K, M]) Init(
 	c.M = newFunc()
 }
 
-// IsCache 返回是否开启缓存
+// IsCache 返回是否启用
 func (c *GORMCache[K, M]) IsCache() bool {
 	return c.cache
 }
@@ -77,7 +77,7 @@ func (c *GORMCache[K, M]) Model() *gorm.DB {
 	return c.db.Model(c.M)
 }
 
-// LoadWhere 加载并替换指定条件的数据
+// LoadWhere 加载并替换指定条件的数据，同步
 func (c *GORMCache[K, M]) LoadWhere(whereFunc func(db *gorm.DB) *gorm.DB) error {
 	// 不启用
 	if !c.cache {
@@ -93,6 +93,7 @@ func (c *GORMCache[K, M]) LoadWhere(whereFunc func(db *gorm.DB) *gorm.DB) error 
 
 // loadWhere 加载并替换指定条件的数据
 func (c *GORMCache[K, M]) loadWhere(db *gorm.DB) error {
+	// 查询
 	var models []M
 	err := db.Find(&models).Error
 	if err != nil {
@@ -113,7 +114,7 @@ func (c *GORMCache[K, M]) LoadAll() error {
 	if !c.cache {
 		return nil
 	}
-	//
+	// 加载
 	c.Lock()
 	err := c.loadAll()
 	c.Unlock()
@@ -134,7 +135,6 @@ func (c *GORMCache[K, M]) loadAll() error {
 		}
 		// 重置
 		c.D = make(map[K]M)
-		// 添加
 		for _, model := range models {
 			c.D[c.key(model)] = model
 		}
@@ -149,7 +149,7 @@ func (c *GORMCache[K, M]) Load(k K) {
 	if !c.cache {
 		return
 	}
-	// 启用
+	// 加载
 	c.Lock()
 	c.load(k)
 	c.Unlock()
@@ -178,7 +178,7 @@ func (c *GORMCache[K, M]) load(k K) error {
 
 // All 返回所有内存，不要修改返回的指针，同步
 func (c *GORMCache[K, M]) All() ([]M, error) {
-	// 不开启
+	// 不启用
 	if !c.cache {
 		var models []M
 		err := c.db.Find(&models).Error
@@ -200,13 +200,13 @@ func (c *GORMCache[K, M]) All() ([]M, error) {
 	for _, v := range c.D {
 		models = append(models, v)
 	}
-	// 返回
+	//
 	return models, nil
 }
 
 // Get 返回指定，不要修改返回的指针，同步
 func (c *GORMCache[K, M]) Get(k K) (m M, err error) {
-	// 不开启
+	// 不启用
 	if !c.cache {
 		mm := c.new()
 		err = c.whereKey(c.db, k).First(mm).Error
@@ -217,6 +217,7 @@ func (c *GORMCache[K, M]) Get(k K) (m M, err error) {
 			return
 		}
 		m = mm
+		//
 		return
 	}
 	// 上锁
@@ -227,9 +228,8 @@ func (c *GORMCache[K, M]) Get(k K) (m M, err error) {
 	if err != nil {
 		return
 	}
-	// 返回
 	m = c.D[k]
-	// 返回
+	//
 	return
 }
 
@@ -246,7 +246,7 @@ func (c *GORMCache[K, M]) Add(m M) (int64, error) {
 		c.load(c.key(m))
 		c.Unlock()
 	}
-	// 返回
+	//
 	return db.RowsAffected, nil
 }
 
@@ -264,24 +264,8 @@ func (c *GORMCache[K, M]) Update(m M) (int64, error) {
 		c.load(c.key(m))
 		c.Unlock()
 	}
-	// 返回
+	//
 	return db.RowsAffected, nil
-}
-
-// BatchUpdate 更新内存
-func (c *GORMCache[K, M]) BatchUpdateCache(fn func(M)) {
-	// 上锁
-	c.Lock()
-	defer c.Unlock()
-	// 确保加载
-	err := c.loadAll()
-	if err != nil {
-		return
-	}
-	// 更新
-	for _, m := range c.D {
-		fn(m)
-	}
 }
 
 // Save 保存，同步
@@ -298,6 +282,7 @@ func (c *GORMCache[K, M]) Save(m M) (int64, error) {
 		c.load(c.key(m))
 		c.Unlock()
 	}
+	//
 	return db.RowsAffected, nil
 }
 
@@ -335,7 +320,7 @@ func (c *GORMCache[K, M]) Delete(k K) (int64, error) {
 		delete(c.D, k)
 		c.Unlock()
 	}
-	// 返回
+	//
 	return db.RowsAffected, nil
 }
 
@@ -354,19 +339,20 @@ func (c *GORMCache[K, M]) BatchDelete(ks []K) (int64, error) {
 		}
 		c.Unlock()
 	}
-	// 返回
+	//
 	return db.RowsAffected, nil
 }
 
-// BatchDeleteCache 删除内存
+// BatchDeleteCache 删除内存，同步
 func (c *GORMCache[K, M]) BatchDeleteCache(fn func(M) bool) {
-	// 缓存
+	// 不启用
 	if !c.cache {
 		return
 	}
 	// 上锁
 	c.Lock()
 	defer c.Unlock()
+	// 删除
 	for k, m := range c.D {
 		if fn(m) {
 			delete(c.D, k)
@@ -374,21 +360,46 @@ func (c *GORMCache[K, M]) BatchDeleteCache(fn func(M) bool) {
 	}
 }
 
-// Search 在内存中查找
-func (c *GORMCache[K, M]) Search(match func(M) bool) ([]M, error) {
-	var mm []M
+// ForeachCache 遍历缓存吗，同步
+func (c *GORMCache[K, M]) ForeachCache(fc func(M)) error {
+	// 不启用
+	if !c.cache {
+		return nil
+	}
 	// 上锁
 	c.Lock()
 	defer c.Unlock()
 	// 确保数据
 	err := c.loadAll()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	// 查找
+	// 循环
 	for _, m := range c.D {
-		if match(m) {
-			mm = append(mm, m)
+		fc(m)
+	}
+	//
+	return nil
+}
+
+// Search 在内存中查找
+func (c *GORMCache[K, M]) SearchCache(match func(M) bool) ([]M, error) {
+	var mm []M
+	// 启用
+	if c.cache {
+		// 上锁
+		c.Lock()
+		defer c.Unlock()
+		// 确保数据
+		err := c.loadAll()
+		if err != nil {
+			return nil, err
+		}
+		// 查找
+		for _, m := range c.D {
+			if match(m) {
+				mm = append(mm, m)
+			}
 		}
 	}
 	//
@@ -396,20 +407,23 @@ func (c *GORMCache[K, M]) Search(match func(M) bool) ([]M, error) {
 }
 
 // Search 在内存中查找
-func (c *GORMCache[K, M]) SearchOne(match func(M) bool) (m M, err error) {
-	// 上锁
-	c.Lock()
-	defer c.Unlock()
-	// 确保数据
-	err = c.loadAll()
-	if err != nil {
-		return
-	}
-	// 查找
-	for _, v := range c.D {
-		if match(v) {
-			m = v
-			break
+func (c *GORMCache[K, M]) SearchCacheOne(match func(M) bool) (m M, err error) {
+	// 启用
+	if c.cache {
+		// 上锁
+		c.Lock()
+		defer c.Unlock()
+		// 确保数据
+		err = c.loadAll()
+		if err != nil {
+			return
+		}
+		// 查找
+		for _, v := range c.D {
+			if match(v) {
+				m = v
+				break
+			}
 		}
 	}
 	//
@@ -417,7 +431,7 @@ func (c *GORMCache[K, M]) SearchOne(match func(M) bool) (m M, err error) {
 }
 
 // Count 返回内存匹配数量
-func (c *GORMCache[K, M]) Count(match func(M) bool) (int64, error) {
+func (c *GORMCache[K, M]) CacheCount(match func(M) bool) (int64, error) {
 	// 上锁
 	c.Lock()
 	defer c.Unlock()
@@ -438,7 +452,7 @@ func (c *GORMCache[K, M]) Count(match func(M) bool) (int64, error) {
 }
 
 // Total 返回内存总量
-func (c *GORMCache[K, M]) Total() int64 {
+func (c *GORMCache[K, M]) CacheTotal() int64 {
 	c.Lock()
 	n := int64(len(c.D))
 	c.Unlock()
@@ -450,8 +464,8 @@ func (c *GORMCache[K, M]) List(page *GORMPage, query GORMQuery, res *GORMList[M]
 	return gormList(c.db, page, query, res)
 }
 
-// SearchGORMCache 模板化的 Search
-func SearchGORMCache[T any, K comparable, M any](c *GORMCache[K, M], match func(M) (bool, T)) ([]T, error) {
+// GORMSearchCache 模板化的 Search
+func GORMSearchCache[T any, K comparable, M any](c *GORMCache[K, M], match func(M) (bool, T)) ([]T, error) {
 	var vv []T
 	// 上锁
 	c.Lock()
