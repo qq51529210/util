@@ -268,6 +268,18 @@ func (c *GORMCache[K, M]) Update(m M) (int64, error) {
 	return db.RowsAffected, nil
 }
 
+// UpdateCache 更新内存，同步。回调有可能为 nil
+func (c *GORMCache[K, M]) UpdateCache(k K, fn func(M)) {
+	// 不启用
+	if !c.cache {
+		return
+	}
+	//
+	c.Lock()
+	fn(c.D[k])
+	c.Unlock()
+}
+
 // Save 保存，同步
 func (c *GORMCache[K, M]) Save(m M) (int64, error) {
 	// 数据库
