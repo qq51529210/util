@@ -394,7 +394,7 @@ func (c *GORMCache[K, M]) ForeachCache(fc func(M)) error {
 	return nil
 }
 
-// Search 在内存中查找
+// Search 在内存中查找，同步
 func (c *GORMCache[K, M]) SearchCache(match func(M) bool) ([]M, error) {
 	var mm []M
 	// 启用
@@ -418,7 +418,29 @@ func (c *GORMCache[K, M]) SearchCache(match func(M) bool) ([]M, error) {
 	return mm, nil
 }
 
-// Search 在内存中查找
+// SearchIn 在内存中查找，同步
+func (c *GORMCache[K, M]) SearchIn(ks []K) ([]M, error) {
+	var mm []M
+	// 上锁
+	c.Lock()
+	defer c.Unlock()
+	// 确保数据
+	err := c.loadAll()
+	if err != nil {
+		return nil, err
+	}
+	// 查找
+	for i := 0; i < len(ks); i++ {
+		m, ok := c.D[ks[i]]
+		if ok {
+			mm = append(mm, m)
+		}
+	}
+	//
+	return mm, nil
+}
+
+// Search 在内存中查找，同步
 func (c *GORMCache[K, M]) SearchCacheOne(match func(M) bool) (m M, err error) {
 	// 启用
 	if c.cache {
@@ -442,7 +464,7 @@ func (c *GORMCache[K, M]) SearchCacheOne(match func(M) bool) (m M, err error) {
 	return
 }
 
-// Count 返回内存匹配数量
+// Count 返回内存匹配数量，同步
 func (c *GORMCache[K, M]) CacheCount(match func(M) bool) (int64, error) {
 	// 上锁
 	c.Lock()
@@ -463,7 +485,7 @@ func (c *GORMCache[K, M]) CacheCount(match func(M) bool) (int64, error) {
 	return n, nil
 }
 
-// Total 返回内存总量
+// Total 返回内存总量，同步
 func (c *GORMCache[K, M]) CacheTotal() int64 {
 	c.Lock()
 	n := int64(len(c.D))
