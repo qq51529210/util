@@ -319,7 +319,7 @@ func (c *GORMCache[K, M]) BatchSave(ms []M) (int64, error) {
 	return int64(len(ms)), nil
 }
 
-// Delete 删除
+// Delete 删除，同步
 func (c *GORMCache[K, M]) Delete(k K) (int64, error) {
 	// 数据库
 	db := c.whereKey(c.db, k).Delete(c.M)
@@ -336,7 +336,18 @@ func (c *GORMCache[K, M]) Delete(k K) (int64, error) {
 	return db.RowsAffected, nil
 }
 
-// BatchDelete 批量删除
+// DeleteCache 删除内存
+func (c *GORMCache[K, M]) DeleteCache(k K) {
+	// 不启用
+	if !c.cache {
+		return
+	}
+	c.Lock()
+	delete(c.D, k)
+	c.Unlock()
+}
+
+// BatchDelete 批量删除，同步
 func (c *GORMCache[K, M]) BatchDelete(ks []K) (int64, error) {
 	// 数据库
 	db := c.whereKeys(c.db, ks).Delete(c.M)
@@ -356,7 +367,7 @@ func (c *GORMCache[K, M]) BatchDelete(ks []K) (int64, error) {
 }
 
 // BatchDeleteCache 删除内存，同步
-func (c *GORMCache[K, M]) BatchDeleteCache(fn func(M) bool) {
+func (c *GORMCache[K, M]) BatchDeleteCache(ks []K) {
 	// 不启用
 	if !c.cache {
 		return
@@ -365,10 +376,8 @@ func (c *GORMCache[K, M]) BatchDeleteCache(fn func(M) bool) {
 	c.Lock()
 	defer c.Unlock()
 	// 删除
-	for k, m := range c.D {
-		if fn(m) {
-			delete(c.D, k)
-		}
+	for i := 0; i < len(ks); i++ {
+		delete(c.D, ks[i])
 	}
 }
 
