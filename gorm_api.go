@@ -206,6 +206,12 @@ func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 			gormInitQuery(db, fv)
 			continue
 		}
+		if fvk == reflect.String {
+			// 空值
+			if fv.IsZero() {
+				continue
+			}
+		}
 		ft := vt.Field(i)
 		tn := ft.Tag.Get(GORMInitQueryTag)
 		p := strings.TrimPrefix(tn, "eq=")
@@ -228,11 +234,11 @@ func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 		}
 		p = strings.TrimPrefix(tn, "like=")
 		if p != tn {
-			db = db.Where(fmt.Sprintf("`%s` LIKE ?", p), fv.Interface())
+			db = db.Where(fmt.Sprintf("`%s` LIKE ?", p), fmt.Sprintf("%%%v%%", fv.Interface()))
 			continue
 		}
 		if tn == "like" {
-			db = db.Where(fmt.Sprintf("`%s` LIKE ?", ft.Name), fv.Interface())
+			db = db.Where(fmt.Sprintf("`%s` LIKE ?", ft.Name), fmt.Sprintf("%%%v%%", fv.Interface()))
 			continue
 		}
 		p = strings.TrimPrefix(tn, "gt=")
