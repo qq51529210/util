@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/glebarez/sqlite v1.8.0
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/qq51529210/log v0.0.0-20230527063400-17df706dd0df
+	github.com/qq51529210/log v0.0.0-20230615091426-6d64dbedda04
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/gorm v1.25.1
