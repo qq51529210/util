@@ -46,7 +46,7 @@ func ginStaticIndex(r gin.IRouter, statics fs.FS, path, index string) {
 }
 
 // GinValidateZH 验证器设置为中文
-func GinValidateZH(errs map[string]string) {
+func GinValidateZH(errs map[string]string) ut.Translator {
 	if va, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		// 设置
 		lt := zh.New()
@@ -62,5 +62,20 @@ func GinValidateZH(errs map[string]string) {
 				return t
 			})
 		}
+		return t
 	}
+	return nil
+}
+
+// GinTranslate 返回翻译的错误数组
+func GinTranslate(t ut.Translator, err error) []string {
+	var ss []string
+	if _err, ok := err.(validator.ValidationErrors); ok {
+		for _, v := range _err.Translate(t) {
+			ss = append(ss, v)
+		}
+	} else {
+		ss = append(ss, err.Error())
+	}
+	return ss
 }
