@@ -56,7 +56,7 @@ func GinValidateZH(errs map[string]string) ut.Translator {
 		//
 		for k, v := range errs {
 			va.RegisterTranslation(k, t, func(ut ut.Translator) error {
-				return ut.Add(k, fmt.Sprintf("{0}%s", v), true)
+				return ut.Add(k, fmt.Sprintf("[{0}]%s", v), true)
 			}, func(ut ut.Translator, fe validator.FieldError) string {
 				t, _ := ut.T(k, fe.Field())
 				return t
