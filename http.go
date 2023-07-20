@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"time"
 )
 
@@ -264,4 +265,61 @@ func HTTPFromWithContext[resData any](ctx context.Context, method, url string, q
 		return json.NewDecoder(res.Body).Decode(resBody)
 	}
 	return err
+}
+
+var (
+	// HTTPQueryTag 是 HTTPQuery 解析 tag 的名称
+	HTTPQueryTag = "query"
+)
+
+// HTTPQuery 将结构体 v 格式化到 url.Values
+// 只扫描一层，并略过空值
+func HTTPQuery(v any) url.Values {
+	q := make(url.Values)
+	rv := reflect.ValueOf(v)
+	vk := rv.Kind()
+	if vk == reflect.Pointer {
+		rv = rv.Elem()
+		vk = rv.Kind()
+	}
+	if vk != reflect.Struct {
+		panic("v must be struct or struct ptr")
+	}
+	return httpQuery(rv, q)
+}
+
+func httpQuery(v reflect.Value, q url.Values) url.Values {
+	vt := v.Type()
+	for i := 0; i < vt.NumField(); i++ {
+		fv := v.Field(i)
+		if !fv.IsValid() {
+			continue
+		}
+		fvk := fv.Kind()
+		if fvk == reflect.Pointer {
+			// 空指针
+			if fv.IsNil() {
+				continue
+			}
+			fv = fv.Elem()
+			fvk = fv.Kind()
+		}
+		// 结构，只一层
+		if fvk == reflect.Struct {
+			continue
+		}
+		if fvk == reflect.String {
+			// 空字符串
+			if fv.IsZero() {
+				continue
+			}
+		}
+		ft := vt.Field(i)
+		tn := ft.Tag.Get(HTTPQueryTag)
+		if tn == "" {
+			continue
+		}
+		q.Set(tn, fmt.Sprintf("%v", fv.Interface()))
+	}
+	return q
 }

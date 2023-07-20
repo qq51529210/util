@@ -159,7 +159,7 @@ var (
 	GORMInitQueryTag = "gq"
 )
 
-// Query 将 v 格式化到 where ，全部是 AND ，略过空值
+// GORMInitQuery 将 q 格式化到 where ，全部是 AND ，略过空值
 //
 //	type query struct {
 //	  A *int64 `gq:"eq"` db.Where("`A` = ?", A)
@@ -207,7 +207,7 @@ func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 			continue
 		}
 		if fvk == reflect.String {
-			// 空值
+			// 空字符串
 			if fv.IsZero() {
 				continue
 			}
