@@ -37,7 +37,7 @@ func (e HTTPStatusError) Error() string {
 // resBody 用于解析响应 body 中的 json
 // statusCode 用于判断状态码
 // timeout 超时
-func HTTP[reqData, resData any](method, url string, query url.Values, reqBody *reqData, resBody *resData, statusCode func(statusCode int) error, timeout time.Duration) error {
+func HTTP[reqData, resData any](method, url string, query url.Values, reqBody *reqData, resBody *resData, onResponse func(res *http.Response) error, timeout time.Duration) error {
 	// 请求
 	var body io.Reader = nil
 	if reqBody != nil {
@@ -63,8 +63,8 @@ func HTTP[reqData, resData any](method, url string, query url.Values, reqBody *r
 	}
 	defer res.Body.Close()
 	// 状态码
-	if statusCode != nil {
-		err = statusCode(res.StatusCode)
+	if onResponse != nil {
+		err = onResponse(res)
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func HTTP[reqData, resData any](method, url string, query url.Values, reqBody *r
 // resBody 写入响应的 body 数据
 // statusCode 用于判断状态码
 // timeout 超时
-func HTTPTo[reqData any](method, url string, query url.Values, reqBody *reqData, resBody io.Writer, statusCode func(statusCode int) error, timeout time.Duration) error {
+func HTTPTo[reqData any](method, url string, query url.Values, reqBody *reqData, resBody io.Writer, onResponse func(res *http.Response) error, timeout time.Duration) error {
 	// 请求
 	var body io.Reader = nil
 	if reqBody != nil {
@@ -108,10 +108,10 @@ func HTTPTo[reqData any](method, url string, query url.Values, reqBody *reqData,
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer res.Body.Close()u
 	// 状态码
-	if statusCode != nil {
-		err = statusCode(res.StatusCode)
+	if onResponse != nil {
+		err = onResponse(res)
 		if err != nil {
 			return err
 		}
@@ -131,7 +131,7 @@ func HTTPTo[reqData any](method, url string, query url.Values, reqBody *reqData,
 // resBody 用于解析响应 body 中的 json
 // statusCode 用于判断状态码
 // timeout 超时
-func HTTPFrom[resData any](method, url string, query url.Values, reqBody io.Reader, resBody *resData, statusCode func(statusCode int) error, timeout time.Duration) error {
+func HTTPFrom[resData any](method, url string, query url.Values, reqBody io.Reader, resBody *resData, onResponse func(res *http.Response) error, timeout time.Duration) error {
 	// 请求
 	req, err := http.NewRequest(method, url, reqBody)
 	if err != nil {
@@ -151,8 +151,8 @@ func HTTPFrom[resData any](method, url string, query url.Values, reqBody io.Read
 	}
 	defer res.Body.Close()
 	// 状态码
-	if statusCode != nil {
-		err = statusCode(res.StatusCode)
+	if onResponse != nil {
+		err = onResponse(res)
 		if err != nil {
 			return err
 		}
@@ -172,7 +172,7 @@ func HTTPFrom[resData any](method, url string, query url.Values, reqBody io.Read
 // reqBody 格式化 json 后写入 body
 // resBody 用于解析响应 body 中的 json
 // statusCode 用于判断状态码
-func HTTPWithContext[reqData, resData any](ctx context.Context, method, url string, query url.Values, reqBody *reqData, resBody *resData, statusCode func(statusCode int) error) error {
+func HTTPWithContext[reqData, resData any](ctx context.Context, method, url string, query url.Values, reqBody *reqData, resBody *resData, onResponse func(res *http.Response) error) error {
 	// body
 	var body io.Reader = nil
 	if reqBody != nil {
@@ -197,8 +197,8 @@ func HTTPWithContext[reqData, resData any](ctx context.Context, method, url stri
 	}
 	defer res.Body.Close()
 	// 状态码
-	if statusCode != nil {
-		err = statusCode(res.StatusCode)
+	if onResponse != nil {
+		err = onResponse(res)
 		if err != nil {
 			return err
 		}
@@ -218,7 +218,7 @@ func HTTPWithContext[reqData, resData any](ctx context.Context, method, url stri
 // reqBody 格式化 json 后写入 body
 // resBody 写入响应的 body 数据
 // statusCode 用于判断状态码
-func HTTPToWithContext[reqData any](ctx context.Context, method, url string, query url.Values, reqBody *reqData, resBody io.Writer, statusCode func(statusCode int) error) error {
+func HTTPToWithContext[reqData any](ctx context.Context, method, url string, query url.Values, reqBody *reqData, resBody io.Writer, onResponse func(res *http.Response) error) error {
 	// body
 	var body io.Reader = nil
 	if reqBody != nil {
@@ -243,8 +243,8 @@ func HTTPToWithContext[reqData any](ctx context.Context, method, url string, que
 	}
 	defer res.Body.Close()
 	// 状态码
-	if statusCode != nil {
-		err = statusCode(res.StatusCode)
+	if onResponse != nil {
+		err = onResponse(res)
 		if err != nil {
 			return err
 		}
@@ -264,7 +264,7 @@ func HTTPToWithContext[reqData any](ctx context.Context, method, url string, que
 // reqBody 用于读取发送 body
 // resBody 用于解析响应 body 中的 json
 // statusCode 用于判断状态码
-func HTTPFromWithContext[resData any](ctx context.Context, method, url string, query url.Values, reqBody io.Reader, resBody *resData, statusCode func(statusCode int) error) error {
+func HTTPFromWithContext[resData any](ctx context.Context, method, url string, query url.Values, reqBody io.Reader, resBody *resData, onResponse func(res *http.Response) error) error {
 	// 请求
 	req, err := http.NewRequest(method, url, reqBody)
 	if err != nil {
@@ -282,8 +282,8 @@ func HTTPFromWithContext[resData any](ctx context.Context, method, url string, q
 	}
 	defer res.Body.Close()
 	// 状态码
-	if statusCode != nil {
-		err = statusCode(res.StatusCode)
+	if onResponse != nil {
+		err = onResponse(res)
 		if err != nil {
 			return err
 		}
