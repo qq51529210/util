@@ -29,8 +29,8 @@ func (e HTTPStatusError) Error() string {
 	return fmt.Sprintf("status code %d", e)
 }
 
-// HTTPStatusCodeError 判断状态码
-func HTTPStatusCodeError(res *http.Response, code int) error {
+// HTTPStatusErrorHandle 判断状态码
+func HTTPStatusErrorHandle(res *http.Response, code int) error {
 	if res.StatusCode != code {
 		e := new(HTTPError)
 		err := json.NewDecoder(res.Body).Decode(e)
