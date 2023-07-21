@@ -29,6 +29,19 @@ func (e HTTPStatusError) Error() string {
 	return fmt.Sprintf("status code %d", e)
 }
 
+// HTTPStatusCodeError 判断状态码
+func HTTPStatusCodeError(res *http.Response, code int) error {
+	if res.StatusCode != code {
+		e := new(HTTPError)
+		err := json.NewDecoder(res.Body).Decode(e)
+		if err != nil {
+			return err
+		}
+		return e
+	}
+	return nil
+}
+
 // HTTP 封装 http 操作
 // method 方法
 // url 请求地址
@@ -108,7 +121,7 @@ func HTTPTo[reqData any](method, url string, query url.Values, reqBody *reqData,
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()u
+	defer res.Body.Close()
 	// 状态码
 	if onResponse != nil {
 		err = onResponse(res)
