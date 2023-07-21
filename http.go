@@ -19,7 +19,7 @@ type HTTPError struct {
 }
 
 func (e *HTTPError) Error() string {
-	return fmt.Sprintf("phrase %s, detail %s", e.Phrase, e.Detail)
+	return fmt.Sprintf("phrase: %s, detail: %s", e.Phrase, e.Detail)
 }
 
 // HTTPStatusError 表示状态错误
