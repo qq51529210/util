@@ -10,7 +10,7 @@ func Test_HTTPQuery(t *testing.T) {
 		A: 12,
 		B: "abc",
 	}
-	q := HTTPQuery(&s)
+	q := HTTPQuery(&s, nil)
 	if q.Get("aa") != "12" ||
 		q.Get("bb") != "abc" {
 		t.FailNow()

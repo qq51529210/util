@@ -274,8 +274,10 @@ var (
 
 // HTTPQuery 将结构体 v 格式化到 url.Values
 // 只扫描一层，并略过空值
-func HTTPQuery(v any) url.Values {
-	q := make(url.Values)
+func HTTPQuery(v any, q url.Values) url.Values {
+	if q == nil {
+		q = make(url.Values)
+	}
 	rv := reflect.ValueOf(v)
 	vk := rv.Kind()
 	if vk == reflect.Pointer {
