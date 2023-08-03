@@ -342,7 +342,7 @@ func (c *GORMCache[K, M]) UpdateCache(k K, fn func(M)) {
 }
 
 // Save 保存，同步
-func (c *GORMCache[K, M]) Save(ctx context.Context, m M) (int64, error) {
+func (c *GORMCache[K, M]) Save(m M) (int64, error) {
 	return c.SaveWithContext(context.Background(), m)
 }
 
@@ -365,7 +365,7 @@ func (c *GORMCache[K, M]) SaveWithContext(ctx context.Context, m M) (int64, erro
 }
 
 // BatchSave 事务保存，同步
-func (c *GORMCache[K, M]) BatchSave(ctx context.Context, ms []M) (int64, error) {
+func (c *GORMCache[K, M]) BatchSave(ms []M) (int64, error) {
 	return c.BatchSaveWithContext(context.Background(), ms)
 }
 
@@ -430,7 +430,7 @@ func (c *GORMCache[K, M]) DeleteCache(k K) {
 }
 
 // BatchDelete 批量删除，同步
-func (c *GORMCache[K, M]) BatchDelete(ctx context.Context, ks []K) (int64, error) {
+func (c *GORMCache[K, M]) BatchDelete(ks []K) (int64, error) {
 	return c.BatchDeleteWithContext(context.Background(), ks)
 }
 
@@ -490,7 +490,7 @@ func (c *GORMCache[K, M]) ForeachCache(fc func(M)) error {
 	return nil
 }
 
-// Search 在内存中查找，同步
+// SearchCache 在内存中查找，同步
 func (c *GORMCache[K, M]) SearchCache(match func(M) bool) ([]M, error) {
 	var mm []M
 	// 启用
@@ -536,7 +536,7 @@ func (c *GORMCache[K, M]) SearchCacheIn(ks []K) ([]M, error) {
 	return mm, nil
 }
 
-// Search 在内存中查找，同步
+// SearchCacheOne 在内存中查找，同步
 func (c *GORMCache[K, M]) SearchCacheOne(match func(M) bool) (m M, err error) {
 	// 启用
 	if c.cache {
@@ -560,7 +560,7 @@ func (c *GORMCache[K, M]) SearchCacheOne(match func(M) bool) (m M, err error) {
 	return
 }
 
-// Count 返回内存匹配数量，同步
+// CacheCount 返回内存匹配数量，同步
 func (c *GORMCache[K, M]) CacheCount(match func(M) bool) (int64, error) {
 	// 上锁
 	c.Lock()
@@ -581,7 +581,7 @@ func (c *GORMCache[K, M]) CacheCount(match func(M) bool) (int64, error) {
 	return n, nil
 }
 
-// Total 返回内存总量，同步
+// CacheTotal 返回内存总量，同步
 func (c *GORMCache[K, M]) CacheTotal() (int64, error) {
 	// 上锁
 	c.Lock()
