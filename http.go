@@ -359,7 +359,7 @@ func httpQuery(v reflect.Value, q url.Values) url.Values {
 		}
 		ft := vt.Field(i)
 		tn := ft.Tag.Get(HTTPQueryTag)
-		if tn == "" {
+		if tn == "" || tn == "-" {
 			continue
 		}
 		q.Set(tn, fmt.Sprintf("%v", fv.Interface()))
