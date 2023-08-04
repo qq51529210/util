@@ -204,7 +204,6 @@ func (c *GORMCache[K, M]) loadWithContext(ctx context.Context, k K) error {
 	// 失败
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.ok = true
 			return nil
 		}
 		c.ok = false
@@ -212,7 +211,6 @@ func (c *GORMCache[K, M]) loadWithContext(ctx context.Context, k K) error {
 	}
 	// 成功
 	c.D[k] = m
-	c.ok = true
 	//
 	return nil
 }
