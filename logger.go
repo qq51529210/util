@@ -1,9 +1,9 @@
 package util
 
-import "github.com/qq51529210/log"
+import (
+	"io"
 
-var (
-	logFile *log.File
+	"github.com/qq51529210/log"
 )
 
 // LogCfg 日志的配置
@@ -13,10 +13,11 @@ type LogCfg struct {
 	DisableLevel []string `json:"disableLevel" yaml:"disableLevel" validate:"omitempty,dive,oneof=debug info warn error"`
 }
 
-func InitLog(cfg *LogCfg) error {
-	f, err := log.NewFile(&cfg.FileConfig)
+// NewFileLog 返回日志文件
+func NewFileLog(cfg *LogCfg) (io.WriteCloser, error) {
+	file, err := log.NewFile(&cfg.FileConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	logger := log.GetLogger()
 	for i := 0; i < len(cfg.DisableLevel); i++ {
@@ -37,13 +38,6 @@ func InitLog(cfg *LogCfg) error {
 			continue
 		}
 	}
-	logFile = f
 	//
-	return nil
-}
-
-func CloseLog() {
-	if logFile != nil {
-		logFile.Close()
-	}
+	return file, nil
 }
