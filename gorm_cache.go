@@ -105,14 +105,14 @@ func (c *GORMCache[K, M]) loadOne(db *gorm.DB, k K) error {
 // loadMultiple 加载多个，db 在外面初始化好
 func (c *GORMCache[K, M]) loadMultiple(db *gorm.DB) error {
 	// 查询
-	var models []M
-	err := db.Find(&models).Error
+	var ms []M
+	err := db.Find(&ms).Error
 	if err != nil {
 		return err
 	}
 	// 加载或替换
-	for _, model := range models {
-		c.D[c.key(model)] = model
+	for _, m := range ms {
+		c.D[c.key(m)] = m
 	}
 	//
 	return nil
@@ -130,19 +130,20 @@ func (c *GORMCache[K, M]) LoadWhereWithContext(ctx context.Context, whereFunc fu
 		// 上锁
 		c.Lock()
 		//
-		var db *gorm.DB
 		if c.OK {
 			// 原数据有效，根据条件加载
-			db = whereFunc(c.ModelWithContext(ctx))
+			err = c.loadMultiple(whereFunc(c.ModelWithContext(ctx)))
+			if err != nil {
+				// 标记
+				c.OK = false
+			}
 		} else {
 			// 原数据无效直接全部加载
-			db = c.ModelWithContext(ctx)
-		}
-		// 加载
-		err = c.loadMultiple(db)
-		if err != nil {
-			// 标记
-			c.OK = false
+			err = c.loadMultiple(c.ModelWithContext(ctx))
+			if err == nil {
+				// 标记
+				c.OK = true
+			}
 		}
 		// 解锁
 		c.Unlock()
@@ -184,12 +185,8 @@ func (c *GORMCache[K, M]) CheckWithContext(ctx context.Context) (err error) {
 	if c.cache {
 		// 上锁
 		c.Lock()
-		// 数据无效才加载
-		if !c.OK {
-			err = c.loadMultiple(c.ModelWithContext(ctx))
-			// 标记
-			c.OK = err == nil
-		}
+		// 加载
+		err = c.check(c.ModelWithContext(ctx))
 		// 解锁
 		c.Unlock()
 	}
@@ -217,13 +214,23 @@ func (c *GORMCache[K, M]) Load(k K) error {
 func (c *GORMCache[K, M]) LoadWithContext(ctx context.Context, k K) (err error) {
 	// 启用
 	if c.cache {
+		db := c.ModelWithContext(ctx)
 		// 上锁
 		c.Lock()
-		// 加载
-		err = c.loadOne(c.ModelWithContext(ctx), k)
-		if err != nil {
-			// 标记
-			c.OK = false
+		if c.OK {
+			// 原数据有效，加载单个
+			err = c.loadOne(db, k)
+			if err != nil {
+				// 标记
+				c.OK = false
+			}
+		} else {
+			// 原数据无效直接全部加载
+			err = c.loadMultiple(db)
+			if err == nil {
+				// 标记
+				c.OK = true
+			}
 		}
 		// 解锁
 		c.Unlock()
