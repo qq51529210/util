@@ -11,9 +11,9 @@ import (
 type GORMCache[K comparable, M any] struct {
 	sync.Mutex
 	// 数据库
-	db *gorm.DB
+	DB *gorm.DB
 	// 是否开启缓存
-	cache bool
+	Cache bool
 	// 数据
 	D map[K]M
 	// gorm.Model 要的模型
@@ -21,13 +21,13 @@ type GORMCache[K comparable, M any] struct {
 	// 标记数据是否无效，需要重新加载
 	OK bool
 	// 创建函数
-	new func() M
+	New func() M
 	// 返回 M 的主键
-	key func(M) K
+	Key func(M) K
 	// 返回 M 的主键，用于单个，查询，修改，删除
-	whereKey func(*gorm.DB, K) *gorm.DB
+	WhereKey func(*gorm.DB, K) *gorm.DB
 	// 返回 M 的主键列表，用于批量删除
-	whereKeys func(*gorm.DB, []K) *gorm.DB
+	WhereKeys func(*gorm.DB, []K) *gorm.DB
 }
 
 // NewGORMCache 返回新的缓存，enable 为 false 则不开启缓存
@@ -53,42 +53,32 @@ func (c *GORMCache[K, M]) Init(
 	whereKeyFunc func(*gorm.DB, K) *gorm.DB,
 	whereKeysFunc func(*gorm.DB, []K) *gorm.DB,
 ) {
-	c.db = db
-	c.cache = cache
+	c.DB = db
+	c.Cache = cache
 	c.D = make(map[K]M)
-	c.new = newFunc
-	c.key = keyFunc
-	c.whereKey = whereKeyFunc
-	c.whereKeys = whereKeysFunc
+	c.New = newFunc
+	c.Key = keyFunc
+	c.WhereKey = whereKeyFunc
+	c.WhereKeys = whereKeysFunc
 	c.M = newFunc()
-}
-
-// IsCache 返回是否启用
-func (c *GORMCache[K, M]) IsCache() bool {
-	return c.cache
-}
-
-// DB 返回 db
-func (c *GORMCache[K, M]) DB() *gorm.DB {
-	return c.db
 }
 
 // Model 返回加载模型的 db
 func (c *GORMCache[K, M]) Model() *gorm.DB {
-	return c.db.Model(c.M)
+	return c.DB.Model(c.M)
 }
 
 // ModelWithContext 返回加载模型的 db
 func (c *GORMCache[K, M]) ModelWithContext(ctx context.Context) *gorm.DB {
-	return c.db.Model(c.M).WithContext(ctx)
+	return c.DB.Model(c.M).WithContext(ctx)
 }
 
 // loadOne 加载单个，添加和修改时候调用，db 在外面初始化好
 // 注意返回错误，要设置 ok 为 false
 func (c *GORMCache[K, M]) loadOne(db *gorm.DB, k K) error {
 	// 读取
-	m := c.new()
-	err := c.whereKey(db, k).First(m).Error
+	m := c.New()
+	err := c.WhereKey(db, k).First(m).Error
 	// 失败
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -112,7 +102,7 @@ func (c *GORMCache[K, M]) loadMultiple(db *gorm.DB) error {
 	}
 	// 加载或替换
 	for _, m := range ms {
-		c.D[c.key(m)] = m
+		c.D[c.Key(m)] = m
 	}
 	//
 	return nil
@@ -126,7 +116,7 @@ func (c *GORMCache[K, M]) LoadWhere(whereFunc func(db *gorm.DB) *gorm.DB) error 
 // LoadWhereWithContext 加载并替换指定条件的数据，同步
 func (c *GORMCache[K, M]) LoadWhereWithContext(ctx context.Context, whereFunc func(db *gorm.DB) *gorm.DB) (err error) {
 	// 启用
-	if c.cache {
+	if c.Cache {
 		// 上锁
 		c.Lock()
 		//
@@ -160,7 +150,7 @@ func (c *GORMCache[K, M]) LoadAll() error {
 // LoadAllWithContext 重新加载，同步
 func (c *GORMCache[K, M]) LoadAllWithContext(ctx context.Context) (err error) {
 	// 启用
-	if c.cache {
+	if c.Cache {
 		// 上锁
 		c.Lock()
 		// 加载
@@ -182,7 +172,7 @@ func (c *GORMCache[K, M]) Check() error {
 // CheckWithContext 检查内存数据是否需要重新加载，同步
 func (c *GORMCache[K, M]) CheckWithContext(ctx context.Context) (err error) {
 	// 启用
-	if c.cache {
+	if c.Cache {
 		// 上锁
 		c.Lock()
 		// 加载
@@ -213,7 +203,7 @@ func (c *GORMCache[K, M]) Load(k K) error {
 // LoadWithContext 加载单个，添加和修改时候调用，同步
 func (c *GORMCache[K, M]) LoadWithContext(ctx context.Context, k K) (err error) {
 	// 启用
-	if c.cache {
+	if c.Cache {
 		db := c.ModelWithContext(ctx)
 		// 上锁
 		c.Lock()
@@ -248,7 +238,7 @@ func (c *GORMCache[K, M]) All() ([]M, error) {
 func (c *GORMCache[K, M]) AllWithContext(ctx context.Context) (ms []M, err error) {
 	db := c.ModelWithContext(ctx)
 	// 不启用
-	if !c.cache {
+	if !c.Cache {
 		err = db.Find(&ms).Error
 		if err != nil {
 			return nil, err
@@ -278,9 +268,9 @@ func (c *GORMCache[K, M]) Get(k K) (m M, err error) {
 // GetWithContext 返回指定，不要修改返回的指针，同步
 func (c *GORMCache[K, M]) GetWithContext(ctx context.Context, k K) (m M, err error) {
 	// 不启用
-	if !c.cache {
-		mm := c.new()
-		err = c.whereKey(c.ModelWithContext(ctx), k).First(mm).Error
+	if !c.Cache {
+		mm := c.New()
+		err = c.WhereKey(c.ModelWithContext(ctx), k).First(mm).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				err = nil
@@ -316,7 +306,7 @@ func (c *GORMCache[K, M]) AddWithContext(ctx context.Context, m M) (int64, error
 	if db.Error == nil {
 		// 内存
 		if db.RowsAffected > 0 {
-			c.LoadWithContext(ctx, c.key(m))
+			c.LoadWithContext(ctx, c.Key(m))
 		}
 	}
 	//
@@ -331,8 +321,8 @@ func (c *GORMCache[K, M]) Update(m M) (int64, error) {
 // UpdateWithContext 更新，同步
 func (c *GORMCache[K, M]) UpdateWithContext(ctx context.Context, m M) (int64, error) {
 	// 数据库
-	k := c.key(m)
-	db := c.whereKey(c.ModelWithContext(ctx), k).Updates(m)
+	k := c.Key(m)
+	db := c.WhereKey(c.ModelWithContext(ctx), k).Updates(m)
 	if db.Error == nil {
 		// 内存
 		if db.RowsAffected > 0 {
@@ -354,8 +344,8 @@ func (c *GORMCache[K, M]) BatchUpdateWithContext(ctx context.Context, ms []M) (i
 	// 数据库
 	err := c.ModelWithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, m := range ms {
-			k := c.key(m)
-			db := c.whereKey(tx, k).Updates(m)
+			k := c.Key(m)
+			db := c.WhereKey(tx, k).Updates(m)
 			if db.Error != nil {
 				return db.Error
 			}
@@ -368,7 +358,7 @@ func (c *GORMCache[K, M]) BatchUpdateWithContext(ctx context.Context, ms []M) (i
 	}
 	// 内存
 	c.LoadWhereWithContext(ctx, func(db *gorm.DB) *gorm.DB {
-		return c.whereKeys(db, ks)
+		return c.WhereKeys(db, ks)
 	})
 	//
 	return int64(len(ms)), nil
@@ -392,8 +382,8 @@ func (c *GORMCache[K, M]) Save(m M) (int64, error) {
 // SaveWithContext 保存，同步
 func (c *GORMCache[K, M]) SaveWithContext(ctx context.Context, m M) (int64, error) {
 	// 数据库
-	k := c.key(m)
-	db := c.whereKey(c.ModelWithContext(ctx), k).Save(m)
+	k := c.Key(m)
+	db := c.WhereKey(c.ModelWithContext(ctx), k).Save(m)
 	if db.Error == nil {
 		// 内存
 		if db.RowsAffected > 0 {
@@ -415,8 +405,8 @@ func (c *GORMCache[K, M]) BatchSaveWithContext(ctx context.Context, ms []M) (int
 	// 数据库
 	err := c.ModelWithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, m := range ms {
-			k := c.key(m)
-			db := c.whereKey(tx, k).Save(m)
+			k := c.Key(m)
+			db := c.WhereKey(tx, k).Save(m)
 			if db.Error != nil {
 				return db.Error
 			}
@@ -429,7 +419,7 @@ func (c *GORMCache[K, M]) BatchSaveWithContext(ctx context.Context, ms []M) (int
 	}
 	// 内存
 	c.LoadWhereWithContext(ctx, func(db *gorm.DB) *gorm.DB {
-		return c.whereKeys(db, ks)
+		return c.WhereKeys(db, ks)
 	})
 	//
 	return int64(len(ms)), nil
@@ -443,10 +433,10 @@ func (c *GORMCache[K, M]) Delete(k K) (int64, error) {
 // DeleteWithContext 删除，同步
 func (c *GORMCache[K, M]) DeleteWithContext(ctx context.Context, k K) (int64, error) {
 	// 数据库
-	db := c.whereKey(c.ModelWithContext(ctx), k).Delete(c.M)
+	db := c.WhereKey(c.ModelWithContext(ctx), k).Delete(c.M)
 	if db.Error == nil {
 		// 内存
-		if db.RowsAffected > 0 && c.cache {
+		if db.RowsAffected > 0 && c.Cache {
 			c.DeleteCache(k)
 		}
 	}
@@ -472,10 +462,10 @@ func (c *GORMCache[K, M]) BatchDelete(ks []K) (int64, error) {
 // BatchDeleteWithContext 批量删除，同步
 func (c *GORMCache[K, M]) BatchDeleteWithContext(ctx context.Context, ks []K) (int64, error) {
 	// 数据库
-	db := c.whereKeys(c.ModelWithContext(ctx), ks).Delete(c.M)
+	db := c.WhereKeys(c.ModelWithContext(ctx), ks).Delete(c.M)
 	if db.Error == nil {
 		// 内存
-		if db.RowsAffected > 0 && c.cache {
+		if db.RowsAffected > 0 && c.Cache {
 			c.BatchDeleteCache(ks)
 		}
 	}
