@@ -26,6 +26,23 @@ type GORMPage struct {
 	Order string `form:"order"`
 }
 
+// Init 初始化 db
+func (m *GORMPage) Init(db *gorm.DB) *gorm.DB {
+	// 分页
+	if m.Offset != nil {
+		db = db.Offset(*m.Offset)
+	}
+	if m.Count != nil {
+		db = db.Limit(*m.Count)
+	}
+	// 排序
+	if m.Order != "" {
+		db = db.Order(m.Order)
+	}
+	//
+	return db
+}
+
 // GORMQuery 是 All 函数格式化查询参数的接口
 type GORMQuery interface {
 	Init(*gorm.DB) *gorm.DB
@@ -292,19 +309,11 @@ func gormList[M any](db *gorm.DB, page *GORMPage, query GORMQuery, res *GORMList
 	if err != nil {
 		return err
 	}
+	// 分页
 	if page != nil {
-		// 分页
-		if page.Offset != nil {
-			db = db.Offset(*page.Offset)
-		}
-		if page.Count != nil {
-			db = db.Limit(*page.Count)
-		}
-		// 排序
-		if page.Order != "" {
-			db = db.Order(page.Order)
-		}
+		db = page.Init(db)
 	}
+	// 查询
 	err = db.Find(&res.Data).Error
 	if err != nil {
 		return err
