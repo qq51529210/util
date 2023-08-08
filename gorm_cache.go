@@ -149,12 +149,12 @@ func (c *GORMCache[K, M]) LoadWhereWithContext(ctx context.Context, whereFunc fu
 	return
 }
 
-// LoadAll 检查内存数据是否需要重新加载，同步
+// LoadAll 重新加载，同步
 func (c *GORMCache[K, M]) LoadAll() error {
 	return c.LoadAllWithContext(context.Background())
 }
 
-// LoadAllWithContext 检查内存数据是否需要重新加载，同步
+// LoadAllWithContext 重新加载，同步
 func (c *GORMCache[K, M]) LoadAllWithContext(ctx context.Context) (err error) {
 	// 启用
 	if c.cache {
