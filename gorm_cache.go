@@ -108,6 +108,24 @@ func (c *GORMCache[K, M]) loadMultiple(db *gorm.DB) error {
 	return nil
 }
 
+// LoadMultiple 加载多个并返回，db 在外面初始化好
+func (c *GORMCache[K, M]) LoadMultiple(db *gorm.DB) (ms []M, err error) {
+	// 上锁
+	c.Lock()
+	// 查询
+	err = db.Find(&ms).Error
+	if err == nil {
+		// 加载或替换
+		for _, m := range ms {
+			c.D[c.Key(m)] = m
+		}
+	}
+	// 解锁
+	c.Unlock()
+	//
+	return
+}
+
 // LoadWhere 加载并替换指定条件的数据，同步
 func (c *GORMCache[K, M]) LoadWhere(whereFunc func(db *gorm.DB) *gorm.DB) error {
 	return c.LoadWhereWithContext(context.Background(), whereFunc)
