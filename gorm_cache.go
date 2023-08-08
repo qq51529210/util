@@ -501,7 +501,7 @@ func (c *GORMCache[K, M]) ForeachCache(fc func(M)) (err error) {
 }
 
 // ForeachCacheWithContext 遍历缓存，同步
-func (c *GORMCache[K, M]) ForeachCacheWithContext(ctx context.Context, fc func(M)) (err error) {
+func (c *GORMCache[K, M]) ForeachCacheWithContext(ctx context.Context, cb func(M)) (err error) {
 	// 上锁
 	c.Lock()
 	// 确保数据
@@ -509,7 +509,7 @@ func (c *GORMCache[K, M]) ForeachCacheWithContext(ctx context.Context, fc func(M
 	if err == nil {
 		// 循环
 		for _, m := range c.D {
-			fc(m)
+			cb(m)
 		}
 	}
 	// 解锁
@@ -656,6 +656,7 @@ func GORMSearchCache[T any, K comparable, M any](c *GORMCache[K, M], match func(
 }
 
 // GORMSearchCacheWithContext 模板化的 Search
+// 用于返回 match 的其他结构列表
 func GORMSearchCacheWithContext[T any, K comparable, M any](ctx context.Context, c *GORMCache[K, M], match func(M) (bool, T)) ([]T, error) {
 	var vv []T
 	// 上锁
