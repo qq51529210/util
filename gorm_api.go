@@ -59,31 +59,31 @@ type GORMList[M any] struct {
 // GORMDB 模板 api
 type GORMDB[K, M any] struct {
 	db *gorm.DB
-	m  M
+	M  M
 }
 
 // NewGORMDB 返回新的 GORMDB
 func NewGORMDB[K, M any](db *gorm.DB, m M) *GORMDB[K, M] {
 	return &GORMDB[K, M]{
 		db: db,
-		m:  m,
+		M:  m,
 	}
 }
 
 // Init 初始化
 func (g *GORMDB[K, M]) Init(db *gorm.DB, m M) {
 	g.db = db
-	g.m = m
+	g.M = m
 }
 
 // Model 返回
 func (g *GORMDB[K, M]) Model() *gorm.DB {
-	return g.db.Model(g.m)
+	return g.db.Model(g.M)
 }
 
 // All 返回列表查询结果
 func (g *GORMDB[K, M]) All(query GORMQuery) ([]M, error) {
-	db := g.db.Model(g.m)
+	db := g.db.Model(g.M)
 	// 条件
 	if query != nil {
 		db = query.Init(db)
@@ -123,13 +123,13 @@ func (g *GORMDB[K, M]) Update(m M) (int64, error) {
 
 // Delete 根据主键删除
 func (g *GORMDB[K, M]) Delete(k K) (int64, error) {
-	db := g.db.Delete(g.m, k)
+	db := g.db.Delete(g.M, k)
 	return db.RowsAffected, db.Error
 }
 
 // BatchDelete 根据主键批量删除
 func (g *GORMDB[K, M]) BatchDelete(ks []K) (int64, error) {
-	db := g.db.Delete(g.m, ks)
+	db := g.db.Delete(g.M, ks)
 	return db.RowsAffected, db.Error
 }
 
