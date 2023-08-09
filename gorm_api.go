@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -58,84 +59,117 @@ type GORMList[M any] struct {
 
 // GORMDB 模板 api
 type GORMDB[K, M any] struct {
-	db *gorm.DB
-	M  M
+	D *gorm.DB
+	M M
 }
 
 // NewGORMDB 返回新的 GORMDB
 func NewGORMDB[K, M any](db *gorm.DB, m M) *GORMDB[K, M] {
 	return &GORMDB[K, M]{
-		db: db,
-		M:  m,
+		D: db,
+		M: m,
 	}
 }
 
 // Init 初始化
 func (g *GORMDB[K, M]) Init(db *gorm.DB, m M) {
-	g.db = db
+	g.D = db
 	g.M = m
 }
 
 // Model 返回
 func (g *GORMDB[K, M]) Model() *gorm.DB {
-	return g.db.Model(g.M)
+	return g.D.Model(g.M)
+}
+
+// ModelWithContext 返回
+func (g *GORMDB[K, M]) ModelWithContext(ctx context.Context) *gorm.DB {
+	return g.D.Model(g.M).WithContext(ctx)
 }
 
 // All 返回列表查询结果
 func (g *GORMDB[K, M]) All(query GORMQuery) ([]M, error) {
-	db := g.db.Model(g.M)
-	// 条件
-	if query != nil {
-		db = query.Init(db)
-	}
-	// 列表
-	var models []M
-	err := db.Find(&models).Error
-	if err != nil {
-		return nil, err
-	}
-	// 返回
-	return models, nil
+	return g.AllWithContext(context.Background(), query)
+}
+
+// AllWithContext 返回列表查询结果
+func (g *GORMDB[K, M]) AllWithContext(ctx context.Context, query GORMQuery) ([]M, error) {
+	return GORMAll[M](g.ModelWithContext(ctx), query)
 }
 
 // Page 返回分页查询结果
 func (g *GORMDB[K, M]) Page(page *GORMPageQuery, query GORMQuery, res *GORMList[M]) error {
-	return GORMPage(g.db, page, query, res)
+	return g.PageWithContext(context.Background(), page, query, res)
 }
 
-// Save 添加
+// PageWithContext 返回分页查询结果
+func (g *GORMDB[K, M]) PageWithContext(ctx context.Context, page *GORMPageQuery, query GORMQuery, res *GORMList[M]) error {
+	return GORMPage(g.ModelWithContext(ctx), page, query, res)
+}
+
+// Save 保存
 func (g *GORMDB[K, M]) Save(m M) (int64, error) {
-	db := g.db.Save(m)
+	return g.SaveWithContext(context.Background(), m)
+}
+
+// SaveWithContext 保存
+func (g *GORMDB[K, M]) SaveWithContext(ctx context.Context, m M) (int64, error) {
+	db := g.ModelWithContext(ctx).Save(m)
 	return db.RowsAffected, db.Error
 }
 
 // Add 添加
 func (g *GORMDB[K, M]) Add(m M) (int64, error) {
-	db := g.db.Create(m)
+	return g.AddWithContext(context.Background(), m)
+}
+
+// AddWithContext 添加
+func (g *GORMDB[K, M]) AddWithContext(ctx context.Context, m M) (int64, error) {
+	db := g.ModelWithContext(ctx).Create(m)
 	return db.RowsAffected, db.Error
 }
 
-// Update 根据主键更新
+// Update 更新
 func (g *GORMDB[K, M]) Update(m M) (int64, error) {
-	db := g.db.Updates(m)
+	return g.UpdateWithContext(context.Background(), m)
+}
+
+// UpdateWithContext 更新
+func (g *GORMDB[K, M]) UpdateWithContext(ctx context.Context, m M) (int64, error) {
+	db := g.ModelWithContext(ctx).Updates(m)
 	return db.RowsAffected, db.Error
 }
 
-// Delete 根据主键删除
+// Delete 删除
 func (g *GORMDB[K, M]) Delete(k K) (int64, error) {
-	db := g.db.Delete(g.M, k)
+	return g.DeleteWithContext(context.Background(), k)
+}
+
+// DeleteWithContext 删除
+func (g *GORMDB[K, M]) DeleteWithContext(ctx context.Context, k K) (int64, error) {
+	db := g.ModelWithContext(ctx).Delete(g.M, k)
 	return db.RowsAffected, db.Error
 }
 
-// BatchDelete 根据主键批量删除
+// BatchDelete 批量删除
 func (g *GORMDB[K, M]) BatchDelete(ks []K) (int64, error) {
-	db := g.db.Delete(g.M, ks)
+	return g.BatchDeleteWithContext(context.Background(), ks)
+}
+
+// BatchDeleteWithContext 批量删除
+func (g *GORMDB[K, M]) BatchDeleteWithContext(ctx context.Context, ks []K) (int64, error) {
+	db := g.ModelWithContext(ctx).Delete(g.M, ks)
 	return db.RowsAffected, db.Error
 }
 
-// Get 根据主键查询
+// Get 查询
 func (g *GORMDB[K, M]) Get(m M) (bool, error) {
-	err := g.db.First(m).Error
+	return g.GetWithContext(context.Background(), m)
+}
+
+// GetWithContext 查询
+func (g *GORMDB[K, M]) GetWithContext(ctx context.Context, m M) (bool, error) {
+	err := g.ModelWithContext(ctx).First(m).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return false, nil
@@ -145,9 +179,14 @@ func (g *GORMDB[K, M]) Get(m M) (bool, error) {
 	return true, nil
 }
 
-// Select 根据主键查询，可选择列
+// Select 查询选择列
 func (g *GORMDB[K, M]) Select(m M, c ...string) (bool, error) {
-	db := g.db
+	return g.SelectWithContext(context.Background(), m, c...)
+}
+
+// SelectWithContext 查询选择列
+func (g *GORMDB[K, M]) SelectWithContext(ctx context.Context, m M, c ...string) (bool, error) {
+	db := g.ModelWithContext(ctx)
 	if len(c) > 0 {
 		db = db.Select(c)
 	}
@@ -163,8 +202,13 @@ func (g *GORMDB[K, M]) Select(m M, c ...string) (bool, error) {
 
 // In 根据主键查询，where in ks
 func (g *GORMDB[K, M]) In(ks []K) ([]M, error) {
+	return g.InWithContext(context.Background(), ks)
+}
+
+// InWithContext 根据主键查询，where in ks
+func (g *GORMDB[K, M]) InWithContext(ctx context.Context, ks []K) ([]M, error) {
 	var ms []M
-	err := g.db.Find(&ms, ks).Error
+	err := g.ModelWithContext(ctx).Find(&ms, ks).Error
 	if err != nil {
 		return nil, err
 	}
