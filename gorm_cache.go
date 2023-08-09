@@ -648,16 +648,6 @@ func (c *GORMCache[K, M]) CacheTotalWithContext(ctx context.Context) (n int64, e
 	return
 }
 
-// List 查询数据库
-func (c *GORMCache[K, M]) List(page *GORMPage, query GORMQuery, res *GORMList[M]) error {
-	return c.ListWithContext(context.Background(), page, query, res)
-}
-
-// ListWithContext 查询数据库
-func (c *GORMCache[K, M]) ListWithContext(ctx context.Context, page *GORMPage, query GORMQuery, res *GORMList[M]) error {
-	return gormList(c.ModelWithContext(ctx), page, query, res)
-}
-
 // GORMSearchCache 模板化的 Search
 func GORMSearchCache[T any, K comparable, M any](c *GORMCache[K, M], match func(M) (bool, T)) ([]T, error) {
 	return GORMSearchCacheWithContext(context.Background(), c, match)
@@ -684,4 +674,14 @@ func GORMSearchCacheWithContext[T any, K comparable, M any](ctx context.Context,
 	c.Unlock()
 	//
 	return vv, err
+}
+
+// WhereID 初始化 GORMCache 需要的函数
+func WhereID[T any](db *gorm.DB, id T) *gorm.DB {
+	return db.Where("`ID` = ?", id)
+}
+
+// WhereIDs 初始化 GORMCache 需要的函数
+func WhereIDs[T any](db *gorm.DB, id []T) *gorm.DB {
+	return db.Where("`ID` IN ?", id)
 }

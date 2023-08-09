@@ -8,16 +8,16 @@ import (
 	"gorm.io/gorm"
 )
 
-// GORMTime 创建和更新时间
-type GORMTime struct {
+// GORMTimeModel 创建和更新时间
+type GORMTimeModel struct {
 	// 数据库的创建时间，时间戳
 	CreatedAt int64 `json:"createdAt" gorm:""`
 	// 数据库的更新时间，时间戳
 	UpdatedAt int64 `json:"updatedAt" gorm:""`
 }
 
-// GORMPage 分页查询参数
-type GORMPage struct {
+// GORMPageQuery 分页查询参数
+type GORMPageQuery struct {
 	// 偏移，小于 0 不匹配
 	Offset *int `form:"offset" binding:"omitempty,min=0"`
 	// 条数，小于 1 不匹配
@@ -27,7 +27,7 @@ type GORMPage struct {
 }
 
 // Init 初始化 db
-func (m *GORMPage) Init(db *gorm.DB) *gorm.DB {
+func (m *GORMPageQuery) Init(db *gorm.DB) *gorm.DB {
 	// 分页
 	if m.Offset != nil {
 		db = db.Offset(*m.Offset)
@@ -43,12 +43,12 @@ func (m *GORMPage) Init(db *gorm.DB) *gorm.DB {
 	return db
 }
 
-// GORMQuery 是 All 函数格式化查询参数的接口
+// GORMQuery 查询参数的接口
 type GORMQuery interface {
 	Init(*gorm.DB) *gorm.DB
 }
 
-// GORMList 是 GORMList 的返回值
+// GORMList 是 GORMPage 的返回值
 type GORMList[M any] struct {
 	// 总数
 	Total int64 `json:"total"`
@@ -98,9 +98,9 @@ func (g *GORMDB[K, M]) All(query GORMQuery) ([]M, error) {
 	return models, nil
 }
 
-// List 返回列表查询结果
-func (g *GORMDB[K, M]) List(page *GORMPage, query GORMQuery, res *GORMList[M]) error {
-	return gormList(g.db, page, query, res)
+// Page 返回分页查询结果
+func (g *GORMDB[K, M]) Page(page *GORMPageQuery, query GORMQuery, res *GORMList[M]) error {
+	return GORMPage(g.db, page, query, res)
 }
 
 // Save 添加
@@ -299,7 +299,8 @@ func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 	return db
 }
 
-func gormList[M any](db *gorm.DB, page *GORMPage, query GORMQuery, res *GORMList[M]) error {
+// GORMPage 分页查询
+func GORMPage[M any](db *gorm.DB, page *GORMPageQuery, query GORMQuery, res *GORMList[M]) error {
 	// 条件
 	if query != nil {
 		db = query.Init(db)
@@ -320,4 +321,16 @@ func gormList[M any](db *gorm.DB, page *GORMPage, query GORMQuery, res *GORMList
 	}
 	//
 	return nil
+}
+
+// GORMAll 查询
+func GORMAll[M any](db *gorm.DB, query GORMQuery) (mm []M, err error) {
+	// 条件
+	if query != nil {
+		db = query.Init(db)
+	}
+	// 查询
+	err = db.Find(&mm).Error
+	//
+	return
 }
