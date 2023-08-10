@@ -533,6 +533,21 @@ func (c *GORMCache[K, M]) DeleteCacheWhere(match func(m M) bool) {
 	for k, m := range c.D {
 		if match(m) {
 			delete(c.D, k)
+			return
+		}
+	}
+	// 解锁
+	c.Unlock()
+}
+
+// BatchDeleteCacheWhere 批量删除内存
+func (c *GORMCache[K, M]) BatchDeleteCacheWhere(match func(m M) bool) {
+	// 上锁
+	c.Lock()
+	// 删除
+	for k, m := range c.D {
+		if match(m) {
+			delete(c.D, k)
 		}
 	}
 	// 解锁
