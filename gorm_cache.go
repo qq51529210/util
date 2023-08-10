@@ -247,12 +247,12 @@ func (c *GORMCache[K, M]) LoadWithContext(ctx context.Context, k K) (err error) 
 	return
 }
 
-// All 返回所有内存，不要修改返回的指针，同步
+// All 返回所有，不要修改返回的指针，同步
 func (c *GORMCache[K, M]) All() ([]M, error) {
 	return c.AllWithContext(context.Background())
 }
 
-// AllWithContext 返回所有内存，不要修改返回的指针，同步
+// AllWithContext 返回所有，不要修改返回的指针，同步
 func (c *GORMCache[K, M]) AllWithContext(ctx context.Context) (ms []M, err error) {
 	db := c.ModelWithContext(ctx)
 	// 不启用
@@ -276,6 +276,16 @@ func (c *GORMCache[K, M]) AllWithContext(ctx context.Context) (ms []M, err error
 	c.Unlock()
 	//
 	return
+}
+
+// List 返回列表，同步
+func (c *GORMCache[K, M]) List(page *GORMPageQuery, query GORMQuery, res *GORMList[M]) error {
+	return c.ListWithContext(context.Background(), page, query, res)
+}
+
+// ListWithContext 返回列表，同步
+func (c *GORMCache[K, M]) ListWithContext(ctx context.Context, page *GORMPageQuery, query GORMQuery, res *GORMList[M]) error {
+	return GORMPage(c.ModelWithContext(ctx), page, query, res)
 }
 
 // Get 返回指定，不要修改返回的指针，同步
