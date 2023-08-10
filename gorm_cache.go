@@ -279,13 +279,25 @@ func (c *GORMCache[K, M]) AllWithContext(ctx context.Context) (ms []M, err error
 }
 
 // List 返回列表，同步
-func (c *GORMCache[K, M]) List(page *GORMPageQuery, query GORMQuery, res *GORMList[M]) error {
+func (c *GORMCache[K, M]) List(page *GORMListPage, query GORMQuery, res *GORMListData[M]) error {
 	return c.ListWithContext(context.Background(), page, query, res)
 }
 
 // ListWithContext 返回列表，同步
-func (c *GORMCache[K, M]) ListWithContext(ctx context.Context, page *GORMPageQuery, query GORMQuery, res *GORMList[M]) error {
-	return GORMPage(c.ModelWithContext(ctx), page, query, res)
+func (c *GORMCache[K, M]) ListWithContext(ctx context.Context, page *GORMListPage, query GORMQuery, res *GORMListData[M]) error {
+	// 没有条件
+	if IsNilOrEmpty(query) && IsNilOrEmpty(page) {
+		data, err := c.AllWithContext(ctx)
+		if err != nil {
+			return err
+		}
+		res.Data = data
+		res.Total = int64(len(data))
+		//
+		return nil
+	}
+	// 数据库
+	return GORMList(c.ModelWithContext(ctx), page, query, res)
 }
 
 // Get 返回指定，不要修改返回的指针，同步

@@ -17,8 +17,13 @@ type GORMTimeModel struct {
 	UpdatedAt int64 `json:"updatedAt" gorm:""`
 }
 
-// GORMPageQuery 分页查询参数
-type GORMPageQuery struct {
+// GORMQuery 查询参数的接口
+type GORMQuery interface {
+	Init(*gorm.DB) *gorm.DB
+}
+
+// GORMListPage 分页查询参数
+type GORMListPage struct {
 	// 偏移，小于 0 不匹配
 	Offset *int `form:"offset" binding:"omitempty,min=0"`
 	// 条数，小于 1 不匹配
@@ -28,7 +33,7 @@ type GORMPageQuery struct {
 }
 
 // Init 初始化 db
-func (m *GORMPageQuery) Init(db *gorm.DB) *gorm.DB {
+func (m *GORMListPage) Init(db *gorm.DB) *gorm.DB {
 	// 分页
 	if m.Offset != nil {
 		db = db.Offset(*m.Offset)
@@ -44,13 +49,8 @@ func (m *GORMPageQuery) Init(db *gorm.DB) *gorm.DB {
 	return db
 }
 
-// GORMQuery 查询参数的接口
-type GORMQuery interface {
-	Init(*gorm.DB) *gorm.DB
-}
-
-// GORMList 是 GORMPage 的返回值
-type GORMList[M any] struct {
+// GORMListData 是 GORMList 的返回值
+type GORMListData[M any] struct {
 	// 总数
 	Total int64 `json:"total"`
 	// 列表
@@ -97,14 +97,14 @@ func (g *GORMDB[K, M]) AllWithContext(ctx context.Context, query GORMQuery) ([]M
 	return GORMAll[M](g.ModelWithContext(ctx), query)
 }
 
-// Page 返回分页查询结果
-func (g *GORMDB[K, M]) Page(page *GORMPageQuery, query GORMQuery, res *GORMList[M]) error {
-	return g.PageWithContext(context.Background(), page, query, res)
+// List 返回分页查询结果
+func (g *GORMDB[K, M]) List(page *GORMListPage, query GORMQuery, res *GORMListData[M]) error {
+	return g.ListWithContext(context.Background(), page, query, res)
 }
 
-// PageWithContext 返回分页查询结果
-func (g *GORMDB[K, M]) PageWithContext(ctx context.Context, page *GORMPageQuery, query GORMQuery, res *GORMList[M]) error {
-	return GORMPage(g.ModelWithContext(ctx), page, query, res)
+// ListWithContext 返回分页查询结果
+func (g *GORMDB[K, M]) ListWithContext(ctx context.Context, page *GORMListPage, query GORMQuery, res *GORMListData[M]) error {
+	return GORMList(g.ModelWithContext(ctx), page, query, res)
 }
 
 // Save 保存
@@ -343,8 +343,8 @@ func gormInitQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 	return db
 }
 
-// GORMPage 分页查询
-func GORMPage[M any](db *gorm.DB, page *GORMPageQuery, query GORMQuery, res *GORMList[M]) error {
+// GORMList 分页查询
+func GORMList[M any](db *gorm.DB, page *GORMListPage, query GORMQuery, res *GORMListData[M]) error {
 	// 条件
 	if query != nil {
 		db = query.Init(db)
