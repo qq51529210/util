@@ -484,16 +484,6 @@ func (c *GORMCache[K, M]) DeleteWithContext(ctx context.Context, k K) (int64, er
 	return db.RowsAffected, db.Error
 }
 
-// DeleteCache 删除内存
-func (c *GORMCache[K, M]) DeleteCache(k K) {
-	// 上锁
-	c.Lock()
-	// 删除
-	delete(c.D, k)
-	// 解锁
-	c.Unlock()
-}
-
 // BatchDelete 批量删除，同步
 func (c *GORMCache[K, M]) BatchDelete(ks []K) (int64, error) {
 	return c.BatchDeleteWithContext(context.Background(), ks)
@@ -520,6 +510,30 @@ func (c *GORMCache[K, M]) BatchDeleteCache(ks []K) {
 	// 删除
 	for _, k := range ks {
 		delete(c.D, k)
+	}
+	// 解锁
+	c.Unlock()
+}
+
+// DeleteCache 删除内存
+func (c *GORMCache[K, M]) DeleteCache(k K) {
+	// 上锁
+	c.Lock()
+	// 删除
+	delete(c.D, k)
+	// 解锁
+	c.Unlock()
+}
+
+// DeleteCache 删除内存
+func (c *GORMCache[K, M]) DeleteCacheWhere(match func(m M) bool) {
+	// 上锁
+	c.Lock()
+	// 删除
+	for k, m := range c.D {
+		if match(m) {
+			delete(c.D, k)
+		}
 	}
 	// 解锁
 	c.Unlock()
