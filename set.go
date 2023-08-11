@@ -66,7 +66,7 @@ func (s *SyncSet[T]) Has(k T) bool {
 }
 
 // Slice 返回所有
-func (s *SyncSet[T]) Slice(k T) []T {
+func (s *SyncSet[T]) Slice() []T {
 	var t []T
 	s.l.RLock()
 	for k := range s.d {
