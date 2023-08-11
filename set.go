@@ -64,3 +64,14 @@ func (s *SyncSet[T]) Has(k T) bool {
 	s.l.RUnlock()
 	return ok
 }
+
+// Slice 返回所有
+func (s *SyncSet[T]) Slice(k T) []T {
+	var t []T
+	s.l.RLock()
+	for k := range s.d {
+		t = append(t, k)
+	}
+	s.l.RUnlock()
+	return t
+}
