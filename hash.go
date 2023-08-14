@@ -98,6 +98,6 @@ func HashString(name string, s string) (string, error) {
 	case "SHA1":
 		return SHA1String(s), nil
 	default:
-		return "", fmt.Errorf("unknown hash name", name)
+		return "", fmt.Errorf("unknown hash name %s", name)
 	}
 }
