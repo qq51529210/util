@@ -22,15 +22,16 @@ func NewSafeChan[T any](len int) *SafeChan[T] {
 }
 
 // Close 关闭
-func (s *SafeChan[T]) Close() {
+func (s *SafeChan[T]) Close() bool {
 	s.m.Lock()
 	if !s.ok {
 		s.m.Unlock()
-		return
+		return false
 	}
 	close(s.C)
 	s.ok = false
 	s.m.Unlock()
+	return true
 }
 
 // Send 写入
@@ -67,8 +68,10 @@ func NewSignal() *Signal {
 }
 
 // Close 关闭
-func (s *Signal) Close() {
+func (s *Signal) Close() bool {
 	if atomic.CompareAndSwapInt32(&s.o, 0, 1) {
 		close(s.C)
+		return true
 	}
+	return false
 }
