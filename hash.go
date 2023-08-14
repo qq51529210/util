@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
+	"fmt"
 	"hash"
 	"sync"
 )
@@ -28,38 +29,6 @@ func init() {
 			sum:  make([]byte, sha1.Size),
 		}
 	}
-}
-
-// MD5 返回 16 进制哈希字符串
-func MD5(b []byte) string {
-	h := md5Pool.Get().(*hashBuffer)
-	s := h.Hash(b)
-	md5Pool.Put(h)
-	return s
-}
-
-// SHA1 返回 16 进制哈希字符串
-func SHA1(b []byte) string {
-	h := sha1Pool.Get().(*hashBuffer)
-	s := h.Hash(b)
-	sha1Pool.Put(h)
-	return s
-}
-
-// MD5String 返回 16 进制哈希字符串
-func MD5String(s string) string {
-	h := md5Pool.Get().(*hashBuffer)
-	s = h.HashString(s)
-	md5Pool.Put(h)
-	return s
-}
-
-// SHA1String 返回 16 进制哈希字符串
-func SHA1String(s string) string {
-	h := sha1Pool.Get().(*hashBuffer)
-	s = h.HashString(s)
-	sha1Pool.Put(h)
-	return s
 }
 
 // 用于做hash运算的缓存
@@ -87,4 +56,48 @@ func (h *hashBuffer) HashString(s string) string {
 	h.buf = h.buf[:h.hash.Size()*2]
 	hex.Encode(h.buf, h.sum)
 	return string(h.buf)
+}
+
+// MD5 返回 16 进制哈希字符串
+func MD5(b []byte) string {
+	h := md5Pool.Get().(*hashBuffer)
+	s := h.Hash(b)
+	md5Pool.Put(h)
+	return s
+}
+
+// MD5String 返回 16 进制哈希字符串
+func MD5String(s string) string {
+	h := md5Pool.Get().(*hashBuffer)
+	s = h.HashString(s)
+	md5Pool.Put(h)
+	return s
+}
+
+// SHA1 返回 16 进制哈希字符串
+func SHA1(b []byte) string {
+	h := sha1Pool.Get().(*hashBuffer)
+	s := h.Hash(b)
+	sha1Pool.Put(h)
+	return s
+}
+
+// SHA1String 返回 16 进制哈希字符串
+func SHA1String(s string) string {
+	h := sha1Pool.Get().(*hashBuffer)
+	s = h.HashString(s)
+	sha1Pool.Put(h)
+	return s
+}
+
+// HashString 返回 16 进制哈希字符串
+func HashString(name string, s string) (string, error) {
+	switch name {
+	case "MD5":
+		return MD5String(s), nil
+	case "SHA1":
+		return SHA1String(s), nil
+	default:
+		return "", fmt.Errorf("unknown hash name %s", name)
+	}
 }
