@@ -24,14 +24,22 @@ func NewGORMConfig() *gorm.Config {
 }
 
 // InitGORM 初始化并返回连接
-func InitGORM(uri string, cfg *gorm.Config) (*gorm.DB, error) {
+func InitGORM(uri string, cfg *gorm.Config) (*gorm.DB, string, error) {
 	// mysql
 	_uri := strings.TrimPrefix(uri, "mysql://")
 	if _uri != uri {
-		return gormMysql(_uri, cfg)
+		db, err := gormMysql(_uri, cfg)
+		if err != nil {
+			return nil, "", err
+		}
+		return db, "mysql", nil
 	}
 	// sqlite
-	return gormSqlite(_uri, cfg)
+	db, err := gormSqlite(_uri, cfg)
+	if err != nil {
+		return nil, "", err
+	}
+	return db, "sqlite", nil
 }
 
 func gormMysql(uri string, cfg *gorm.Config) (*gorm.DB, error) {
