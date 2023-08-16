@@ -9,11 +9,18 @@ import (
 	"gorm.io/gorm"
 )
 
+// GORMBaseModel 基本字段
+type GORMBaseModel[T comparable] struct {
+	// 数据库ID
+	ID T `json:"id" gorm:""`
+	GORMTimeModel
+}
+
 // GORMTimeModel 创建和更新时间
 type GORMTimeModel struct {
-	// 数据库的创建时间，时间戳
+	// 创建时间戳
 	CreatedAt int64 `json:"createdAt" gorm:""`
-	// 数据库的更新时间，时间戳
+	// 更新时间戳
 	UpdatedAt int64 `json:"updatedAt" gorm:""`
 }
 
